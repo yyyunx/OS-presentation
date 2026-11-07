@@ -50,6 +50,8 @@ Terminal B 按 `Ctrl+C` 只停止監看；全部展示結束後，在 Terminal A
 完整英文逐字稿見 [3–4 分鐘雙視窗展示流程](presentation/Dashboard_Terminal_4min_Demo.md)。
 這次修改的測試狀態見 [Terminal proof 測試紀錄](docs/DEMO_PROOF_TEST_RESULTS.md)，
 下方 2026-11-07 的舊 CI 成績不能代替本次修改的測試。
+Windows 要直接連入現有 VMware Ubuntu 執行測試，見
+[VMware SSH 設定與測試](docs/VMWARE_SSH.md)；這不影響報告使用真正 Ubuntu Terminal。
 
 Ubuntu 專案根目錄執行 `make demo-ui`，再以同一台 VM 的瀏覽器開啟
 **http://127.0.0.1:8765**。三個場景為 Ticket Safety、Connection Rush、Traffic Control；
