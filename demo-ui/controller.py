@@ -297,7 +297,8 @@ class Dashboard:
             self.event('run_end', status='Error' if error else 'Completed',
                        message=error or 'Validated experiment; all children stopped.',
                        cleanup='PASS: all children reaped' if cleanup_ok else 'FAIL: process remains',
-                       run_directory=str(self.run_directory))
+                       run_directory=str(self.run_directory), results=self.snapshot()['results'],
+                       sampled_at=self.snapshot()['sampled_at'])
             error = error or self.journal_error
             self.update(status='Error' if error else 'Completed',
                         message=error or 'Measured results saved. All experiment processes stopped.')
@@ -374,6 +375,7 @@ class Dashboard:
                         self.event('proc_sample', name=name, pid=server.process.pid,
                                    sampled_at=time.time(), **metrics,
                                    connected=previous['connected'], failures=previous['failures'],
+                                   client_log=str(client.log_path),
                                    source='/proc/{0}/status + /proc/{0}/fd; {1}'.format(
                                        server.process.pid, client.log_path))
             if sample_now:

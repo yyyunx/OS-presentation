@@ -116,9 +116,23 @@ def render(event, historical=False):
         return '{} RESULT {} PID={} {}\n  Validation={} | source={}'.format(
             head, name, pid, summary, event['validation'], event['source'])
     if kind == 'run_end':
-        return '{} {}: {}\n  Cleanup={} | run={}\n[Historical] Retained measurements; no longer live. Original outcome={}\n  Full raw output: {}'.format(
+        summary = []
+        for key, values in event.get('results', {}).items():
+            if 'purchases' in values:
+                name = 'race_demo' if key == 'without' else 'mutex_demo'
+                text = '{} Purchases={} Remaining={} Oversold={}'.format(
+                    name, values['purchases'], values['remaining'], 'YES' if values['oversold'] else 'NO')
+            elif 'Incoming' in values:
+                text = '{} Incoming={} Processed={} Rejected={} Max Queue={} Workers={}'.format(
+                    key, values['Incoming'], values['Processed'], values['Rejected'],
+                    values['Max queue size'], values['Worker threads'])
+            else:
+                text = '{} PID={} Threads={} FDs={} Connected={} Failures={}'.format(
+                    key, values['pid'], values['threads'], values['fds'], values['connected'], values['failures'])
+            summary.append('  ' + text)
+        return '{} {}: {}\n  Cleanup={} | run={}\n[Historical] Retained measurements; no longer live. Original outcome={}\n{}\n  Full raw output: {}'.format(
             head, event['status'], event['message'], event['cleanup'], event['run_id'],
-            event['status'], event['run_directory'])
+            event['status'], '\n'.join(summary) or '  No validated result available.', event['run_directory'])
     if kind == 'reset':
         return '{} RESET browser cards; previous terminal evidence retained.'.format(head)
     return '{} {} {}'.format(head, kind, event.get('message', ''))

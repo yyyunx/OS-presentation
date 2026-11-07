@@ -1,15 +1,18 @@
 #!/usr/bin/env python3
 """Real Linux C++/proc -> journal -> real terminal transcript; no fake binaries."""
 import argparse
+import http.client
 import importlib.util
 import json
 from pathlib import Path
 import platform
+import re
 import signal
 import socket
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -105,7 +108,9 @@ def main():
                     latest = samples[-1]
                     pid = latest['pid']
                     # Independent reads of real /proc, while sockets are held.
-                    actual = controller.proc_metrics(pid)
+                    status = Path('/proc/{}/status'.format(pid)).read_text()
+                    actual = {'threads': int(re.search(r'^Threads:\s+(\d+)', status, re.M)[1]),
+                              'fds': len(list(Path('/proc/{}/fd'.format(pid)).iterdir()))}
                     assert (actual['threads'], actual['fds']) == (latest['threads'], latest['fds'])
                     assert latest['connected'] == count and latest['failures'] == 0
                     command = Path('/proc/{}/cmdline'.format(pid)).read_bytes().split(b'\0')[:-1]
@@ -125,9 +130,33 @@ def main():
                     assert len(samples) >= 3
                     assert all(.5 <= gap < 2 for gap in gaps), gaps
                     for sample in samples:
+                        held = int(re.search(r'Holding (\d+) sockets', Path(sample['client_log']).read_text())[1])
+                        assert sample['connected'] == held
                         assert sample['fds'] == count + (5 if name == 'epoll_server' else 4)
                         assert sample['threads'] == (1 if name == 'epoll_server' else count + 1)
                 assert len([e for e in events if e['kind'] == 'fd_cleanup']) == (2 if count == 100 else 1)
+                if count == 500:
+                    # Technical Logs' complete-output route retains the noisy raw
+                    # output that the native Terminal intentionally summarizes.
+                    server = controller.make_server(0)
+                    server.dashboard = app
+                    thread = threading.Thread(target=server.serve_forever)
+                    thread.start()
+                    try:
+                        connection = http.client.HTTPConnection('127.0.0.1', server.server_port, timeout=3)
+                        connection.request('GET', '/api/logs')
+                        response = connection.getresponse()
+                        raw = response.read().decode()
+                        connection.close()
+                        assert response.status == 200 and raw == app.full_logs()
+                        assert len(raw) > controller.LOG_LIMIT
+                        assert raw.count('Client connected') == 501  # startup probe + actual clients
+                        assert 'Connected clients: 500' in raw and 'Server stopped.' in raw
+                        evidence['tests'].append('HTTP complete Technical Logs: all 501 raw connection events retained')
+                    finally:
+                        server.shutdown()
+                        thread.join(3)
+                        server.server_close()
 
             app.start('connections100')
             wait_for(lambda: len(app.snapshot()['results']) == 2)
