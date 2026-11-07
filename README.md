@@ -4,6 +4,53 @@
 
 ## Concert Ticket Rush Dashboard
 
+### 左邊 Dashboard、右邊真正 Ubuntu Terminal（建議報告模式）
+
+兩個 Terminal 都先 `cd` 到**同一份 Ubuntu 專案**，例如
+`/mnt/hgfs/presentation/ticket-rush-os-demo`。事先執行：
+
+```bash
+make
+make test
+make test-demo-ui
+make test-demo-proof
+```
+
+```bash
+# Terminal A：保留在背景，啟動 Dashboard 控制器
+make demo-ui
+```
+
+```bash
+# Terminal B：真正的 Ubuntu Terminal，放在畫面右邊
+make demo-proof
+```
+
+在**同一台 Ubuntu VM** 的瀏覽器開啟 **http://127.0.0.1:8765**，放在左邊。
+Ubuntu GNOME 可選取瀏覽器按 `Super+Left`，選取 Terminal B 按 `Super+Right`；
+其他桌面可直接拖曳到螢幕左右邊緣。Terminal A 留在背景，視需要調小字體／瀏覽器縮放。
+Terminal B 是獨立 Python 監看程式，沒有嵌入網頁的假 Terminal。
+
+依序操作左側 **Ticket Safety → Run experiment**、
+**Connection Rush → 100 idle connections → Run experiment**、
+**Traffic Control → Run experiment**，右側會同步顯示：
+
+- 真實 executable／argv、PID、UTC 啟動與結束觀測時間、Exit Code 和清理結果。
+- Race/Mutex 的購票／剩餘票／超賣結果；程式即使很快結束，也不會被狀態輪詢漏掉。
+- 保持連線期間每約 0.8 秒讀取 Linux `/proc` 的 Threads／FDs，搭配 client 實際輸出的 Connected／Failures。
+- Queue 的 Incoming／Processed／Rejected／Max Queue／Workers，以及守恆檢查。
+
+終端只列關鍵摘要，不列出每條 client 連線。完整 stdout/stderr 保存在忽略於 Git 的
+`.runtime/demo-proof/`；Technical Logs 可開啟完整輸出（頁內預覽仍限最後 24,000 字元）。
+`Completed` 表示驗證與清理結束；之後保留的數字標成 `Historical`。
+`Error` 保留失敗／取消證據；Reset 清除瀏覽器卡片，但不清空 Terminal。
+Terminal B 按 `Ctrl+C` 只停止監看；全部展示結束後，在 Terminal A 按 `Ctrl+C` 才停止控制器。
+
+詳細機制、重啟／歷史／故障處理見 [Terminal 證據模式](docs/DEMO_PROOF.md)；
+完整英文逐字稿見 [3–4 分鐘雙視窗展示流程](presentation/Dashboard_Terminal_4min_Demo.md)。
+這次修改的測試狀態見 [Terminal proof 測試紀錄](docs/DEMO_PROOF_TEST_RESULTS.md)，
+下方 2026-11-07 的舊 CI 成績不能代替本次修改的測試。
+
 Ubuntu 專案根目錄執行 `make demo-ui`，再以同一台 VM 的瀏覽器開啟
 **http://127.0.0.1:8765**。三個場景為 Ticket Safety、Connection Rush、Traffic Control；
 所有數字來自既有程式輸出與 Linux `/proc`，動畫另外標示為教學示意。

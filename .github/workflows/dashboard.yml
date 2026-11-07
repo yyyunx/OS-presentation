@@ -17,6 +17,8 @@ jobs:
         run: make test
       - name: Real dashboard experiments and cleanup checks
         run: make test-demo-ui
+      - name: Real terminal proof, short processes, proc sampling, cancellation and reruns
+        run: make test-demo-proof
       - name: Print measured summary
         if: always()
         run: |
@@ -34,5 +36,8 @@ jobs:
         if: always()
         with:
           name: dashboard-measurements
-          path: docs/dashboard-ubuntu-results.json
+          path: |
+            docs/dashboard-ubuntu-results.json
+            .runtime/proof-test-results.json
+          include-hidden-files: true
           if-no-files-found: ignore

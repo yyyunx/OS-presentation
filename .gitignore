@@ -4,3 +4,4 @@ __pycache__/
 /presentation/ubuntu-concurrency-retest/
 *.ppt
 *.pptx
+/.runtime/

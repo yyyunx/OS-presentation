@@ -1,5 +1,8 @@
 # Three-minute English dashboard demo
 
+For the updated side-by-side browser + **real Ubuntu Terminal** presentation,
+use [the 3–4 minute demo script](Dashboard_Terminal_4min_Demo.md).
+
 Preparation: in Ubuntu, run `make`, `make test`, and `make test-demo-ui` before
 class. Start `make demo-ui`, open http://127.0.0.1:8765 inside Ubuntu, and keep
 browser zoom around 80–90% if needed to fit the experiment cards. Stop any manual

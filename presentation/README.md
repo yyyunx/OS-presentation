@@ -5,11 +5,11 @@ An Operating System Perspective on Online Ticketing**.
 
 ## Dashboard alternative for slide 14
 
-Use [the three-minute Dashboard script and P14 revision suggestions](Dashboard_3min_Demo_and_P14.md)
-for the new local interface. Start it with `make demo-ui` in Ubuntu and open
-http://127.0.0.1:8765 in the same VM. This replaces the manual terminal demo
-sequence below when presenting the Dashboard; the earlier reviewed notes remain
-available as the original version.
+Use [the 3–4 minute Dashboard + real Terminal script](Dashboard_Terminal_4min_Demo.md).
+Start `make demo-ui` in the background, `make demo-proof` in the native Ubuntu
+Terminal on the right, and open http://127.0.0.1:8765 in Ubuntu's browser on the
+left. See the root README for setup. This replaces the manual terminal sequence
+below; earlier reviewed notes remain available as the original version.
 
 ## Speaker notes and demo
 

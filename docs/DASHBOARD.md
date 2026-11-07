@@ -1,5 +1,10 @@
 # Concert Ticket Rush Dashboard
 
+For the recommended left-browser/right-native-Ubuntu-Terminal setup, start
+`make demo-proof` in a second Terminal from the same clone. See
+[real Terminal evidence](DEMO_PROOF.md) and the
+[3–4 minute English script](../presentation/Dashboard_Terminal_4min_Demo.md).
+
 ## Start on Ubuntu
 
 From the repository root (the clone may be named `OS-presentation`):

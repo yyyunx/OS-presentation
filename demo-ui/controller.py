@@ -13,10 +13,13 @@ import sys
 import tempfile
 import threading
 import time
+import uuid
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 ROOT = Path(__file__).resolve().parent.parent
 STATIC = Path(__file__).resolve().parent / 'static'
+sys.path.insert(0, str(STATIC.parent))
+from proof import Journal, utc_now
 BINARIES = {'race_demo', 'mutex_demo', 'resource_uncontrolled_demo',
             'resource_protected_demo', 'blocking_server', 'epoll_server'}
 SCENES = {'safety', 'connections100', 'connections500', 'traffic'}
@@ -64,13 +67,20 @@ def parse_traffic(output, protected):
 
 
 class Child:
-    def __init__(self, argv, label):
+    def __init__(self, argv, label, log_path=None):
         self.label = label
-        self.log = tempfile.TemporaryFile(mode='w+b')
+        self.argv = argv
+        self.log_path = log_path
+        self.log = Path(log_path).open('w+b') if log_path else tempfile.TemporaryFile(mode='w+b')
+        self.launch_requested_at = utc_now()
+        self.ended_at = None
+        self.exit_recorded = False
+        self.cleanup = 'not checked'
         try:
             self.process = subprocess.Popen(argv, cwd=ROOT, stdin=subprocess.DEVNULL,
                                             stdout=self.log, stderr=subprocess.STDOUT,
                                             start_new_session=True, close_fds=True)
+            self.started_at = utc_now()
         except BaseException:
             self.log.close()
             raise
@@ -82,28 +92,59 @@ class Child:
         return os.pread(self.log.fileno(), size, 0).decode('utf-8', errors='replace')
 
     def terminate(self):
+        self.cleanup = 'already exited; reaped'
         if self.process.poll() is None:
+            self.cleanup = 'SIGINT; reaped'
             self.process.send_signal(signal.SIGINT)
             try:
                 self.process.wait(timeout=2)
             except subprocess.TimeoutExpired:
                 os.killpg(self.process.pid, signal.SIGKILL)
                 self.process.wait(timeout=2)
+                self.cleanup = 'SIGKILL; reaped (graceful shutdown failed)'
                 raise ExperimentError(self.label + ': graceful shutdown timed out; force-killed and reaped')
 
 
 class Dashboard:
-    def __init__(self):
+    def __init__(self, journal_path=None):
         self.lock = threading.RLock()
         self.cancel = threading.Event()
         self.worker = None
         self.children = []
         self.state = self.empty()
+        self.journal = Journal() if journal_path is None else Journal(journal_path)
+        self.run_id = None
+        self.run_directory = None
+        self.log_paths = []
+        self.journal_error = None
+
+    def event(self, kind, **data):
+        # Evidence failure must make the run Error, but must NEVER skip cleanup.
+        try:
+            self.journal.emit(kind, run_id=self.run_id, scene=self.state['scene'], **data)
+        except OSError as exc:
+            self.journal_error = 'Proof journal write failed: ' + str(exc)
+
+    def record_exit(self, child):
+        code = child.process.poll()
+        if code is not None and not child.exit_recorded:
+            child.ended_at = utc_now()
+            self.event('process_exit', name=child.label, pid=child.process.pid,
+                       exit_code=code, ended_at=child.ended_at)
+            child.exit_recorded = True
+
+    def full_logs(self):
+        with self.lock:
+            paths = list(self.log_paths)
+        return '\n'.join('--- {} ---\n{}'.format(path.name,
+                        path.read_bytes().decode('utf-8', errors='replace'))
+                        for path in paths)
 
     @staticmethod
     def empty():
         return {'status': 'Waiting', 'scene': None, 'results': {}, 'logs': '',
-                'message': 'Choose a scene and run a real experiment.', 'sampled_at': None}
+                'message': 'Choose a scene and run a real experiment.', 'sampled_at': None,
+                'run_id': None}
 
     def snapshot(self):
         with self.lock:
@@ -129,6 +170,18 @@ class Dashboard:
             self.cancel.clear()
             self.state = self.empty()
             self.state.update(status='Running', scene=scene, message='Starting real processes…')
+            self.run_id = uuid.uuid4().hex
+            self.state['run_id'] = self.run_id
+            self.journal_error = None
+            self.run_directory = self.journal.path.parent / self.journal.session / self.run_id
+            self.log_paths = []
+            try:
+                self.run_directory.mkdir(parents=True)
+                self.event('run_start', status='Running', cwd=str(ROOT))
+                require(not self.journal_error, self.journal_error)
+            except (OSError, ExperimentError) as exc:
+                self.state.update(status='Error', message=str(exc))
+                raise ExperimentError(str(exc))
             self.worker = threading.Thread(target=self.run, args=(scene,), daemon=False)
             self.worker.start()
 
@@ -142,10 +195,12 @@ class Dashboard:
             require(not worker.is_alive(), 'Cleanup still in progress; retry shortly')
         with self.lock:
             if reset:
+                self.event('reset', status='Waiting')
                 self.state = self.empty()
 
     def check(self):
         require(not self.cancel.is_set(), 'Stopped by presenter; processes cleaned up')
+        require(not self.journal_error, self.journal_error)
 
     def spawn(self, name, args=()):
         self.check()
@@ -156,8 +211,14 @@ class Dashboard:
             path = ROOT / 'bin' / name
             require(path.is_file(), 'Missing {}. Run make on Ubuntu first.'.format(name))
             argv = [str(path)]
-        child = Child(argv + list(args), name)
+        log_path = self.run_directory / '{}-{}.log'.format(len(self.children) + 1, name)
+        child = Child(argv + list(args), name, log_path)
         self.children.append(child)
+        with self.lock:
+            self.log_paths.append(log_path)
+        self.event('process_start', name=name, pid=child.process.pid, argv=child.argv,
+                   started_at=child.started_at, launch_requested_at=child.launch_requested_at,
+                   log_path=str(log_path))
         return child
 
     def until(self, predicate, timeout, message):
@@ -173,6 +234,7 @@ class Dashboard:
     def finished(self, child, timeout=12):
         self.until(lambda: child.process.poll() is not None, timeout,
                    child.label + ': timed out')
+        self.record_exit(child)
         require(child.process.returncode == 0,
                 '{} exited {}; inspect Technical Logs'.format(child.label, child.process.returncode))
         return child.output()
@@ -184,15 +246,21 @@ class Dashboard:
             if scene == 'safety':
                 for name, key, expected in [('race_demo', 'without', (4, -3)),
                                             ('mutex_demo', 'with', (1, 0))]:
-                    values = parse_safety(self.finished(self.spawn(name)))
+                    child = self.spawn(name)
+                    values = parse_safety(self.finished(child))
                     require((values['purchases'], values['remaining']) == expected,
                             'Unexpected ticket result')
                     self.result(key, values)
+                    self.event('result', name=name, pid=child.process.pid, values=values,
+                               validation='PASS (expected teaching outcome)', source=str(child.log_path))
             elif scene == 'traffic':
                 for name, key, protected in [('resource_uncontrolled_demo', 'uncontrolled', False),
                                               ('resource_protected_demo', 'protected', True)]:
-                    values = parse_traffic(self.finished(self.spawn(name, ['1000', '0'])), protected)
+                    child = self.spawn(name, ['1000', '0'])
+                    values = parse_traffic(self.finished(child), protected)
                     self.result(key, values)
+                    self.event('result', name=name, pid=child.process.pid, values=values,
+                               validation='PASS (conservation, drain, policy)', source=str(child.log_path))
             else:
                 self.connections(100 if scene == 'connections100' else 500)
             self.check()
@@ -200,14 +268,24 @@ class Dashboard:
             error = str(exc)
         finally:
             self.update(message='Cleaning up experiment processes…')
+            cleanup_ok = True
             for child in reversed(self.children):
+                detail = ''
                 try:
                     child.terminate()
                     if child.label in ('blocking_server', 'epoll_server'):
                         require(child.process.returncode == 0,
                                 child.label + ': server shutdown returned nonzero')
                 except Exception as exc:
+                    detail = str(exc)
                     error = error or 'Cleanup failed: ' + str(exc)
+                finally:
+                    self.record_exit(child)
+                    reaped = child.process.poll() is not None
+                    cleanup_ok = cleanup_ok and reaped
+                    self.event('process_cleanup', name=child.label, pid=child.process.pid,
+                               cleanup='PASS' if reaped else 'FAIL',
+                               detail=detail or child.cleanup, exit_code=child.process.returncode)
             try:
                 self.refresh_logs()
             except Exception as exc:
@@ -215,6 +293,12 @@ class Dashboard:
             for child in self.children:
                 child.log.close()
             self.children = []
+            error = error or self.journal_error
+            self.event('run_end', status='Error' if error else 'Completed',
+                       message=error or 'Validated experiment; all children stopped.',
+                       cleanup='PASS: all children reaped' if cleanup_ok else 'FAIL: process remains',
+                       run_directory=str(self.run_directory))
+            error = error or self.journal_error
             self.update(status='Error' if error else 'Completed',
                         message=error or 'Measured results saved. All experiment processes stopped.')
 
@@ -273,18 +357,27 @@ class Dashboard:
                         failures=count-connected, requested=count, pid=server.process.pid,
                         baseline_fds=baseline, phase='Live / held idle connections'))
         self.update(message='Sampling real Linux processes while idle sockets remain open…')
+        next_sample = 0
         deadline = time.monotonic() + 15
         while any(c.process.poll() is None for _, _, c, _ in clients):
             self.check()
             require(time.monotonic() < deadline, 'Load clients timed out')
+            sample_now = time.monotonic() >= next_sample
             for name, server, client, baseline in clients:
                 require(server.process.poll() is None, name + ': server exited during load')
                 # Preserve the last held sample when client teardown begins.
-                if client.process.poll() is None and 'Closed ' not in client.output():
+                if sample_now and client.process.poll() is None and 'Closed ' not in client.output():
                     metrics = proc_metrics(server.process.pid)
                     previous = self.snapshot()['results'][name]
                     if metrics['fds'] == baseline + previous['connected']:
                         self.result(name, dict(previous, **metrics))
+                        self.event('proc_sample', name=name, pid=server.process.pid,
+                                   sampled_at=time.time(), **metrics,
+                                   connected=previous['connected'], failures=previous['failures'],
+                                   source='/proc/{0}/status + /proc/{0}/fd; {1}'.format(
+                                       server.process.pid, client.log_path))
+            if sample_now:
+                next_sample = time.monotonic() + .75
             self.refresh_logs()
             self.cancel.wait(0.2)
         for name, server, client, baseline in clients:
@@ -296,6 +389,8 @@ class Dashboard:
             self.result(name, dict(previous, failures=int(final[2]), phase='Final held sample / historical'))
             self.until(lambda: proc_metrics(server.process.pid)['fds'] == baseline,
                        3, name + ': disconnected client FD leak')
+            self.event('fd_cleanup', name=name, pid=server.process.pid,
+                       fds=proc_metrics(server.process.pid)['fds'], baseline_fds=baseline)
             require(client.process.returncode == 0 and int(final[2]) == 0,
                     name + ': connection failures; inspect logs and ulimit -n')
 
@@ -324,6 +419,9 @@ class Handler(BaseHTTPRequestHandler):
             return self.reply(200, self.server.dashboard.snapshot())
         if self.path == '/api/session':
             return self.reply(200, {'token': self.server.token})
+        if self.path == '/api/logs':
+            return self.reply(200, self.server.dashboard.full_logs().encode('utf-8'),
+                              'text/plain; charset=utf-8')
         files = {'/': ('index.html', 'text/html; charset=utf-8'),
                  '/app.js': ('app.js', 'text/javascript; charset=utf-8'),
                  '/style.css': ('style.css', 'text/css; charset=utf-8')}

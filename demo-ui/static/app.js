@@ -22,7 +22,7 @@ function render(){
  $('run').disabled=running||pending||offline; $('reset').disabled=pending||offline;
  $('stop').disabled=!running||pending||offline;
  document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active',b.dataset.scene===scene || b.dataset.scene==='connections100'&&scene==='connections500'));
- $('provenance').textContent=current.sampled_at ? `${current.status==='Running'?'Latest actual sample':'Historical result'} · ${new Date(current.sampled_at*1000).toLocaleTimeString()}`:'No measurements yet · — means unavailable';
+ $('provenance').textContent=(current.sampled_at ? `${current.status==='Running'&&!offline?'Latest actual sample':'Historical result'} · ${new Date(current.sampled_at*1000).toLocaleTimeString()}`:'No measurements yet · — means unavailable')+(current.run_id?` · Run ${current.run_id.slice(0,8)}`:'');
  $('logs').textContent=current.logs||'No process output yet.';
  $('animation-caption').textContent=config.caption;
  $('animation').classList.toggle('running',current.status==='Running'&&!offline);

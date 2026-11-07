@@ -12,7 +12,7 @@ PHASE2 = bin/socket_server$(EXE) bin/blocking_server$(EXE) \
          bin/resource_protected_demo$(EXE)
 NETWORK_HEADERS = socket-server/net_utils.h socket-server/blocking_ticket_server.h
 
-.PHONY: all phase1 phase2 test demo-ui test-demo-ui clean
+.PHONY: all phase1 phase2 test demo-ui demo-proof test-demo-ui test-demo-proof clean
 all: $(PHASE1) $(PHASE2)
 phase1: $(PHASE1)
 phase2: $(PHASE2)
@@ -54,6 +54,12 @@ test: all
 
 demo-ui: all
 	python3 demo-ui/controller.py
+
+demo-proof:
+	python3 demo-ui/proof.py
+
+test-demo-proof: all
+	python3 tests/proof_integration.py --output .runtime/proof-test-results.json
 
 test-demo-ui: all
 	python3 tests/dashboard_integration.py --output docs/dashboard-ubuntu-results.json
