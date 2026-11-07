@@ -2,10 +2,20 @@
 
 專案名稱：`ticket-rush-os-demo`
 
+## 報告與展示資料
+
+15 分鐘英文報告的中英對照講稿、Ubuntu Demo 指令和 P5 計時來源整理於
+[presentation/](presentation/README.md)。本次修訂統一 Demo 為 Race/Mutex、
+8081 與 8082 各 100 條 idle connections、`--hold 60`，最後比較資源統計。
+P5 使用使用者於 2026-11-07 回報的 Ubuntu VM 結果：Sequential 2009.97 ms、
+Multithread 111.85 ms、17.97x；加速來自模擬 I/O 等待重疊，不是 CPU 本身變快。
+
 這是 OS 課程的 terminal 實作 Demo，以熱門演唱會搶票展示作業系統概念。
 不是實際售票網站，沒有 GUI、Web framework 或支付功能。
-第一階段已完成 concurrency、CPU scheduling、race condition 與 mutex；
-另外三個目錄先保留下一階段規劃。
+Phase 1 與 Phase 2 的六個 Demo 已完成實作。主要執行環境為 VMware Ubuntu，
+使用 Linux API、C++11、g++、Makefile；Python 僅用於大量 clients 與測試。
+Phase 1 的四份 C++ 原始碼與行為保留不變。
+2026-10-29 使用者已在 VMware Ubuntu 完成 Phase 2 的 `make test`，全部通過。
 
 ## 專案結構
 
@@ -19,11 +29,23 @@ ticket-rush-os-demo/
 │   ├── race_demo.cpp
 │   └── mutex_demo.cpp
 ├── socket-server/
-│   └── README.md                  # 下一階段規劃
+│   ├── socket_server.cpp
+│   ├── blocking_ticket_server.h   # Demo 4 / Demo 5 A 共用 blocking 實作
+│   ├── net_utils.h                # Linux socket / protocol 小型共用函式
+│   ├── load_clients.py
+│   └── README.md
 ├── epoll-server/
-│   └── README.md                  # 下一階段規劃
+│   ├── blocking_server.cpp
+│   ├── epoll_server.cpp
+│   └── README.md
 ├── resource-management/
-│   └── README.md                  # 下一階段規劃
+│   ├── request_simulator.h
+│   ├── resource_uncontrolled_demo.cpp
+│   ├── resource_protected_demo.cpp
+│   └── README.md
+├── tests/
+│   ├── ubuntu_smoke.py
+│   └── test_smoke_startup.py      # 啟動握手與錯誤診斷的 portable 回歸測試
 ├── Makefile
 ├── README.md
 ├── TEST_RESULTS.md
@@ -32,13 +54,13 @@ ticket-rush-os-demo/
 └── bin/                          # make 自動產生，忽略於 Git
 ```
 
-## 1. Compile：Ubuntu / Linux
+## Compile：Ubuntu / Linux
 
-需要 C++11、g++、GNU make 和 pthread。Ubuntu 尚未安裝編譯工具時：
+需要 C++11、g++、GNU make、pthread 和 Python 3。Ubuntu 尚未安裝工具時：
 
 ```bash
 sudo apt update
-sudo apt install build-essential
+sudo apt install build-essential python3
 ```
 
 切換到專案目錄後一次編譯：
@@ -49,10 +71,13 @@ make
 ```
 
 本專案會由 Windows 的 VMware Shared Folder 分享到 Ubuntu。
+2026-10-29 核對 VMware 設定：共享名稱為 `presentation`，host path 是本專案的上一層。
+因此 Ubuntu 的專案路徑包含 `presentation/ticket-rush-os-demo`；
+`~/Documents/ticket-rush-os-demo` 是不同的本機路徑，不會自動與 Windows 同步。
 在你的 VMware Ubuntu terminal 中可直接使用：
 
 ```bash
-cd /mnt/hgfs/ticket-rush-os-demo
+cd /mnt/hgfs/presentation/ticket-rush-os-demo
 make
 ./bin/concurrency_demo
 ./bin/scheduling_demo
@@ -65,21 +90,34 @@ Windows 原始碼位置：`C:\Users\User\Desktop\大三上\OS\presentation\ticke
 
 Makefile 使用 `-std=c++11 -O2 -Wall -Wextra -Wpedantic -pthread`。
 可用 `make -j4` 平行編譯；清除產物用 `make clean`。
-不需要 Python，第一階段全部是 C++。
+`make` 建置全部九支 C++ executables；Python 不需要編譯或 pip 套件。
+也可用 `make phase1` 或 `make phase2` 只建置一個階段。
 
-## 2. 執行方式
+## 快速執行
 
 ```bash
 ./bin/concurrency_demo
 ./bin/scheduling_demo
 ./bin/race_demo
 ./bin/mutex_demo
+
+./bin/socket_server              # 8080，Ctrl+C 結束
+./bin/blocking_server            # 8081，Ctrl+C 結束
+./bin/epoll_server               # 8082，Ctrl+C 結束
+./bin/resource_uncontrolled_demo
+./bin/resource_protected_demo
 ```
 
-四支程式都無需參數，也不需要額外資料或服務。
-Concurrency 約需 2 秒；其他程式很快結束，適合直接在課堂重複展示。
+以上是九支程式的獨立執行指令；三個 server 會持續執行，請分開 terminal 操作，
+用 Ctrl+C 結束後再切換。Server 僅綁定 `127.0.0.1`，clients 也在同一台 Ubuntu VM 執行。
+Server 可加 port 參數，例如 `./bin/epoll_server 9090`，client 對應加 `--port 9090`。
+資源模擬器預設 1000 requests；可用 `[incoming] [arrival_delay_ms]` 改變負載。
 
-## 3. Demo 1：Ticket Rush — Processes & Concurrency
+## 1. Processes & Concurrency
+
+**OS concepts：** Process、Thread、Concurrency、Context Switching。
+**Ticketing scenario：** 20 位使用者進入售票系統，等待外部服務回應。
+**執行：**
 
 ```bash
 ./bin/concurrency_demo
@@ -122,7 +160,11 @@ log 順序或 thread ID **不能直接量測切換次數**。
 原始碼中的 `output_mutex` 只保護一行輸出，100 ms 等待在鎖外，
 避免把所有 requests 意外串行化。
 
-## 4. Demo 2：Who Runs First? — CPU Scheduling
+## 2. CPU Scheduling
+
+**OS concepts：** FCFS、non-preemptive SJF、Round Robin、ready queue、preemption。
+**Ticketing scenario：** 售票系統已收到 A–D 的 requests，哪一個先取得 CPU？
+**執行：**
 
 ```bash
 ./bin/scheduling_demo
@@ -164,7 +206,15 @@ log 順序或 thread ID **不能直接量測切換次數**。
 假設 Burst 已知、沒有 I/O、context-switch overhead 為 0。
 本資料的 RR 平均等待最低，不代表它對所有 workloads 都最低。
 
-## 5. Demo 3：The Last Ticket — Race Conditions & Locks
+**報告可以這樣解釋：**
+
+> FCFS 按到達順序，長 request 會拖住後面的人；SJF 在 CPU 空出來時挑最短的已到達工作。
+> Round Robin 每人輪流使用一段時間，改善等待初次服務的機會，但切換也有成本。
+
+## 3. Race Condition & Mutex
+
+**OS concepts：** shared state、check-then-act race、atomic、Critical Section、mutual exclusion。
+**Ticketing scenario：** 四位買家同時購買最後一張票。
 
 先執行無 Mutex 版本，再執行 Mutex 版本：
 
@@ -235,43 +285,248 @@ for i in 1 2 3; do ./bin/race_demo; ./bin/mutex_demo; done
 Mutex 內的 delay 只為對照教學；正式服務應縮短 Critical Section，
 不要在鎖內等待慢速網路或付款。
 
-## 6. 課堂 Demo 順序（約 5–8 分鐘）
+**報告可以這樣解釋：**
 
-1. `make`：展示 C++11 和 pthread 編譯方式。
-2. `./bin/concurrency_demo`：比較總時間、PID 與 thread IDs，說明 overlapping I/O waits。
-3. `./bin/scheduling_demo`：用 A 的長工作解釋 FCFS 等待，再比較 SJF 與 RR。
-4. `./bin/race_demo`：指出四個人都看到 1，但四個人都扣票，剩下 -3。
-5. `./bin/mutex_demo`：打開 `// Critical Section` 的原始碼，再展示只剩一人成功。
+> 單次讀寫是 atomic，並不等於整個購票流程是 atomic。Mutex 必須把「檢查＋扣票」
+> 一起包住，下一個買家才會看到更新後的庫存。
 
-## 7. 下一階段：Socket / epoll / Resource Management
+## 4. Socket & File Descriptor
 
-| 主題 | 建議實作 | 可觀察的 OS 現象 |
+**OS concepts：** TCP、Client/Server、socket、bind、listen、accept、File Descriptor。
+**Ticketing scenario：** 大量買家連到售票系統，每一條已接受的連線都需要一個 server socket FD。
+
+**執行（兩個 Ubuntu terminals，各先 cd 到專案根目錄）：**
+
+```bash
+# Terminal A
+./bin/socket_server
+```
+
+```bash
+# Terminal B：建立 100 connections，送 BUY 並等待回覆，再保持 20 秒
+python3 socket-server/load_clients.py 100
+```
+
+若在 `socket-server/` 目錄，可直接 `python3 load_clients.py 100`。
+先用一位買家確認協定：
+
+```bash
+python3 socket-server/load_clients.py 1 --hold 0
+```
+
+Server 顯示 listening port、PID、listening FD、每位 client 的 connected FD 和 active count。
+Client 顯示 `Replies: 100 / 100`，保持連線期間可觀察：
+
+```bash
+# Terminal C：把 server 啟動時顯示的 PID 填入
+server_pid=12345
+ls /proc/$server_pid/fd
+ls /proc/$server_pid/fd | wc -l
+grep Threads /proc/$server_pid/status
+ulimit -n
+```
+
+**Demo 時觀察：** active count 上升到 100，clients 結束後下降到 0；
+`/proc/<pid>/fd` 的總數還包含 stdin/stdout/stderr 和 listening socket，不能當作純 client 數量。
+FD 數字只在同一 process 內有意義，server FD 與 Python client FD 不相同；關閉後數字可再利用。
+`listen()` backlog 是尚未被 accept 的連線排隊，與已連線數／request queue 不同。
+
+協定是純文字、每行一筆：`BUY\n` → `REQUEST RECEIVED\n`；未知指令回覆
+`UNKNOWN COMMAND\n`。TCP 不保留訊息邊界，程式累積到 newline 才處理，
+支援分段到達、多筆黏在一次 recv、CRLF。這只確認收到 request，沒有實際扣票。
+單行最多 1024 bytes，超過會回覆 `ERROR: LINE TOO LONG` 並關閉。
+
+**選用 FD 上限 Demo：** 只在 server 的 subshell 降低上限，讓 Python client 的上限不受影響。
+先用 Ctrl+C 停止原 server，再執行：
+
+```bash
+# Terminal A
+(ulimit -n 64; ./bin/socket_server)
+# Terminal B
+python3 socket-server/load_clients.py 100 --idle --hold 10 --timeout 3
+```
+
+達到 FD 上限時可能看到 `Too many open files`（EMFILE），server 會報錯、清理並結束，
+client 的失敗與非零 exit status 是這個選用實驗的預期結果。此教學 baseline 並未實作持續服務的 EMFILE 恢復策略。
+
+**報告可以這樣解釋：**
+
+> Listening socket 負責等新連線；accept 產生另一個已連線 socket。
+> 一萬位使用者不是一個 socket，而是很多個 FD 與 kernel socket 資源。
+> 即使大家都還沒送 BUY，這些連線也已經占資源。
+
+## 5. Non-blocking I/O & epoll
+
+**OS concepts：** blocking、non-blocking、fcntl/O_NONBLOCK、readiness、epoll、partial I/O。
+**Ticketing scenario：** 大量使用者保持連線，大部分時間都在等，只有少數人送出 request。
+
+**Version A：blocking / thread-per-client**（預設 port 8081）：
+
+```bash
+# Terminal A
+./bin/blocking_server
+# Terminal B
+python3 socket-server/load_clients.py 100 --port 8081 --idle --hold 30
+```
+
+Server 顯示 `Client N -> Thread ... (FD ...)`。用前章的 `/proc` 指令觀察，
+約有 main + 100 個 client threads，多數 worker 阻塞在 `recv()`。
+Demo 4 與 Version A **共用** `blocking_ticket_server.h`，差別是標題與預設 port，
+確保比較時協定與 client 行為相同。Finished threads 的 join bookkeeping 會保留到 server 結束；
+這是簡單教學 baseline，正式服務還需要回收已完成 workers。
+
+**Version B：epoll**（預設 port 8082）：
+
+```bash
+# Terminal A
+./bin/epoll_server
+# Terminal B
+python3 socket-server/load_clients.py 100 --port 8082 --idle --hold 30
+# 再跑同樣的 100 connections，這次送出 BUY
+python3 socket-server/load_clients.py 100 --port 8082 --hold 20
+```
+
+在另一個 terminal 用 PID 觀察 FD／Threads。先完成 100 的比較，再可加到 500：
+
+```bash
+python3 socket-server/load_clients.py 500 --port 8082 --hold 30
+```
+
+**Demo 時觀察：** epoll 一樣需要每條連線的 FD，但 `Threads: 1`。
+Idle connections 會累積在 `Monitoring N connections`；有資料或斷線時才出現
+`Ready events: N` 和 `Handling FD ...`。Ready events 包含 listener、資料、關閉通知，
+不是一定有 N 個 BUY，也不是監控連線總數。斷線後 Monitoring 應回到 0。
+如果 ulimit 低於實驗所需的 FDs，先減少 clients；epoll 不會移除 FD 上限。
+
+- **Blocking I/O：** `recv()` 沒資料時讓呼叫它的 thread 睡眠等待。本例每 client 一個 worker；
+  阻塞的 thread 不代表一直消耗 CPU，但仍有 stack、排程與管理成本。
+- **Non-blocking I/O：** 加上 `O_NONBLOCK` 後，沒有資料／送不出去時立即回傳 `EAGAIN`，
+  程式保留狀態，稍後再試，不在這個 FD 上等待。
+- **epoll：** kernel 追蹤已登記的 FDs，`epoll_wait()` 等到有 readiness 再回傳事件。
+  Event loop 的 `epoll_wait()` 可以睡眠等待，個別 socket 的 `recv/send` 則不阻塞。
+- 使用 level-triggered 模式。`epoll_ctl(ADD/MOD/DEL)` 管理監控，`fcntl` 同時設定 listener
+  與 accept 後的 sockets；Linux 的 accept 不會自動繼承 listener 的 O_NONBLOCK。
+- Readiness 表示可以嘗試 I/O，不保證拿到完整指令。程式處理 partial reads/writes、
+  `EINTR`、`EAGAIN`、EOF、peer half-close、錯誤與 FD 清理。
+- 只有存在尚未送完的資料才登記 `EPOLLOUT`，避免一直可寫造成 busy loop。
+  每個 client 的待傳回覆最多 64 KiB，避免慢速讀取者造成無限 buffer 累積。
+
+三支 server 都可 Ctrl+C 關閉。Blocking 版本用 `shutdown()` 喚醒 recv/send 中的 workers，
+再 join、close；epoll 版本清理 client sockets、listening socket 和 epoll FD。
+
+**報告可以這樣解釋：**
+
+> Thread-per-client 是每位客人安排一位服務人員，即使客人只是等待。
+> epoll 讓一個服務人員先等 OS 通知哪幾位客人有事，再處理那些 ready sockets。
+> 它減少等待型連線需要的 threads；CPU 密集或慢速工作仍應移到其他 workers。
+
+這裡比較架構與資源，不以 terminal log 的執行速度當效能 benchmark。
+
+## 6. Resource Management
+
+**OS concepts：** fixed thread pool、producer/consumer、condition variable、bounded queue、backpressure、load shedding。
+**Ticketing scenario：** 1000 個 requests 突然到達，但只有 4 個 worker threads。
+這是本機 request server simulator，不是網路 server，也不會真的把 VM 撐到崩潰。
+
+**執行：**
+
+```bash
+./bin/resource_uncontrolled_demo
+./bin/resource_protected_demo
+```
+
+兩者都採用同樣的 4 workers，每筆工作模擬 10 ms 處理時間，隔離 queue policy 的差異。
+
+| Version | 接收策略 | 應觀察 |
 |---|---|---|
-| Too Many Connections | localhost TCP server + Python 大量 clients | 每條連線占 FD；`ulimit -n`、`/proc/<pid>/fd`、`EMFILE` |
-| Handling Massive I/O | blocking server vs non-blocking + level-triggered epoll | readiness、`EAGAIN`、單執行緒管理多條連線、partial I/O |
-| Surviving the Rush | 固定 worker pool、bounded queue、上限、timeout、BUSY 回應 | thread／FD／memory 限制、backpressure、過載時保留服務能力 |
+| Uncontrolled | 全收、沒有 pending queue 容量上限 | Pending 可能達 200／500／900 附近；1000 全部處理，Rejected = 0 |
+| Protected | Pending queue 上限 20；滿時等至多 1 ms，仍滿就拒絕 | Queue full、rejected (BUSY)、Max queue size ≤ 20，總數守恆 |
 
-先做 socket 基線，再做 epoll 比較，最後加入資源限制與同一套負載測試。
-Python 只負責啟動大量 clients；server 與資源策略繼續使用 C++11。
-三個目錄目前只有規劃，尚未宣稱具備伺服器功能。
+**Fixed Thread Pool：** 只建立 4 workers，工作在 queue lock 外處理。
+**Bounded Queue：** 檢查容量與 enqueue 在同一個 Critical Section。
+**Backpressure：** queue 滿時，producer 透過 `condition_variable::wait_for` 短暫等待，
+讓 request 的提交速度受到 worker 容量影響；等待時釋放 mutex。
+**Load Shedding：** 等待期限到仍無容量，就回覆模擬的 BUSY 並丟棄該 request。
+Workers 無工作時用 condition variable 睡眠，結束時排空已接收的工作再 join。
 
-## 8. 實測環境
+最後會印 Incoming、Accepted、Processed、Rejected、Max queue size、Worker threads、Pending after drain。
+必須滿足 `Processed + Rejected = Incoming`、`Processed = Accepted`、`Pending after drain = 0`。
+Queue size 只算等待中的 requests，不包含最多 4 筆正在處理的工作；protected 同時保留的工作最多 24 筆。
+實際接受／拒絕數取決於排程與 timer，**不要期待固定是 350／650**。
 
-詳細結果見 [TEST_RESULTS.md](TEST_RESULTS.md)。主要目標是你的 VMware Ubuntu。
-Codex 目前只能在 Windows 工作區做 MinGW 額外驗證，無法直接操作 VM terminal；
-Ubuntu 的實際編譯與執行結果由你在 VM 中取得，再提供給 Codex 修正。
+可以調整輸入量、比較較平緩的到達速度：
 
-Makefile 預設使用 Linux 的 `mkdir -p`、`rm -rf`、`g++` 與 pthread。
-本機額外驗證時才傳入 `EXE=.exe` 和 Git Bash 的 shell 路徑，例如：
+```bash
+./bin/resource_uncontrolled_demo 1000 1
+./bin/resource_protected_demo 1000 1
+./bin/resource_protected_demo 10
+```
+
+第二個參數為每筆提交之間的 delay（ms）。例如 `10` requests 通常全數接收，
+負載較平緩時 queue 較不容易滿。Uncontrolled 的「unbounded」是策略無上限；
+本次實驗是有限 1000 requests，並未量測記憶體耗盡或宣稱已觀察到 OOM。
+
+**報告可以這樣解釋：**
+
+> 當到達速度超過處理速度，全收只會累積等待與記憶體需求。
+> 限制 workers 和 queue、短暫回壓、必要時拒絕新 request，能保留已接收工作的完成能力。
+> 資源管理的目的，是讓 server 在高流量下仍能維持可控的工作量。
+
+## Ubuntu 驗證步驟
+
+```bash
+cd /mnt/hgfs/presentation/ticket-rush-os-demo
+make -j4
+make test
+```
+
+`make test` 使用 Python standard library，在 localhost 自動啟動三個 server，
+使用暫時選擇的 ports，驗證分段／多筆指令、未知指令、half-close、過長指令、
+client reset、32 idle connections 的 FD／thread 行為、斷線回收、Ctrl+C 與資源統計。
+也檢查無效 port 參數及小負載（1 request）。測試會清理自己啟動的 processes。
+測試先執行啟動同步的回歸測試，再跑 Linux 整合測試。啟動探測會送 BUY、讀到回覆、
+關閉探測連線並等待 server 清理其 FD，避免將尚待 accept／close 的探測 FD 誤算進基準。
+失敗時會顯示 server log；idle 連線逾時會附上 baseline、expected、observed FD 數。
+它不取代現場 100／500 clients 的 terminal 觀察，亦未模擬所有 slow-client／partial-send 情境。
+
+Phase 1 仍可照原指令執行四支程式確認既有行為。
+如果 VMware shared folder 上編譯成功、執行卻回報 Permission denied（noexec mount），
+可只把 binaries 放到 Ubuntu home 的可執行檔案系統：
+
+```bash
+cp -r bin ~/ticket-rush-os-demo-bin
+~/ticket-rush-os-demo-bin/epoll_server
+```
+
+自動 smoke test 需要根目錄的 `bin/` 可執行；若遇到 noexec，可將整份專案複製到 VM home，
+在該份專案重新 make/test。將完整 compiler error 或 `make test` 輸出提供給 Codex 供後續修正。
+
+## 建議現場順序（約 12–15 分鐘）
+
+1. 提前 `make`、`make test`，再以 Phase 1 三個 Demo 開場。
+2. Socket server＋1 client，說明協定與 listener / accepted FD。
+3. 改成 100 clients、保持連線，觀察 active count 和 `/proc/<pid>/fd`。
+4. Blocking server＋100 idle clients，觀察 Threads；Ctrl+C 結束。
+5. epoll server＋同樣 100 idle clients，再送 BUY；觀察 Threads = 1 與 ready events。
+6. 比較 uncontrolled / protected 統計，用 Max queue size 和拒絕數收尾。
+
+FD 上限與 500 clients 是可選加分實驗；先確認 100 clients 在 VM 穩定。
+
+## 實測狀態
+
+詳見 [TEST_RESULTS.md](TEST_RESULTS.md)。Codex 目前在 Windows，無法操作 VMware terminal。
+Phase 1 沿用原本已通過的測試；Phase 2 的資源模擬器可以做 MinGW 額外驗證。
+2026-10-29 修正啟動探測的 FD 基準時序漏洞後，使用者在 VMware Ubuntu 重跑 `make test`，
+截圖顯示 **All Phase 2 Ubuntu smoke checks passed**：三支網路 server、
+32 idle connections 的 FD/thread、protocol、清理、SIGINT 及資源統計檢查全部通過。
+Uncontrolled：1000 processed、0 rejected、最大 queue 997；
+Protected：378 processed、622 rejected、最大 queue 20，兩者皆為 4 workers 且完成後 queue 為 0。
+兩種資源版本的單筆 request 也通過。這是使用者 VM 提供的實測證據，
+不包含尚未回報的手動 100／500 clients 或 EMFILE 實驗。
+
+Windows 額外驗證只建置 portable targets，不執行預設全部建置：
 
 ```powershell
 $env:PATH = 'C:\Program Files\Git\usr\bin;' + $env:PATH
-mingw32-make 'SHELL=C:/Program Files/Git/bin/sh.exe' EXE=.exe
-./bin/concurrency_demo.exe
-./bin/scheduling_demo.exe
-./bin/race_demo.exe
-./bin/mutex_demo.exe
+mingw32-make 'SHELL=C:/Program Files/Git/bin/sh.exe' EXE=.exe phase1 bin/resource_uncontrolled_demo.exe bin/resource_protected_demo.exe
 ```
-
-Ubuntu 版本使用前述的 `make` 與不含 `.exe` 的名稱。
-第一階段除顯示 PID 的平台分支外，其餘程式使用標準 C++11。

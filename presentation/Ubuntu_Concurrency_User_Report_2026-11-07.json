@@ -1,0 +1,15 @@
+{
+  "source": "Explicit user report in the conversation on 2026-11-07, Asia/Taipei",
+  "assistant_executed": false,
+  "environment": "Ubuntu VM",
+  "kernel": "Linux 7.0.0-38-generic",
+  "users": 20,
+  "simulated_io_wait_ms_per_request": 100,
+  "sequential_ms": 2009.97,
+  "multithread_ms": 111.85,
+  "reported_speedup": 17.97,
+  "calculated_speedup": 17.97022798390702,
+  "repeat_count": null,
+  "aggregation": "not specified by the user",
+  "interpretation": "Overlapping simulated I/O waits, not faster CPU execution"
+}

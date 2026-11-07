@@ -1,0 +1,44 @@
+# Plain ASCII command reference for slide 14
+# Run these in Ubuntu, from the project root.
+# Present for 3 min 20 sec. Use 100 clients per server, hold 60 seconds.
+# No 500-client test in this presentation.
+
+# Before class: compile and test
+cd /mnt/hgfs/presentation/ticket-rush-os-demo
+make -j4
+make test
+
+# Before class, Terminal A: leave running
+./bin/blocking_server
+
+# Before class, Terminal B: leave running
+./bin/epoll_server
+
+# Terminal D, demo step 1: inventory correctness
+./bin/race_demo; ./bin/mutex_demo
+
+# Terminal C, demo step 2: equal idle-client workloads
+python3 socket-server/load_clients.py 100 \
+  --port 8081 --idle --hold 60 &
+python3 socket-server/load_clients.py 100 \
+  --port 8082 --idle --hold 60 &
+
+# Terminal D: read NLWP while both client sets remain connected
+ps -C blocking_server,epoll_server \
+  -o pid,comm,nlwp
+
+# Terminal D, demo step 3: resource statistics
+./bin/resource_uncontrolled_demo | tail -n 9
+./bin/resource_protected_demo | tail -n 9
+
+# OPTIONAL exact original grep command. First set the ACTUAL server PIDs.
+# Example PIDs below are placeholders, not measured values.
+blocking_pid=12345
+epoll_pid=12346
+grep -H Threads "/proc/$blocking_pid/status" "/proc/$epoll_pid/status"
+ls "/proc/$blocking_pid/fd" | wc -l
+ls "/proc/$epoll_pid/fd" | wc -l
+
+# Ubuntu-only slide 5 retest: run this once and allow about 10 seconds.
+# It builds concurrency_demo and saves three raw runs plus median timing JSON.
+python3 /mnt/hgfs/presentation/output/Ubuntu_Concurrency_Retest.py
