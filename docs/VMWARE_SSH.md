@@ -8,7 +8,9 @@ window remains a native Ubuntu Terminal running `make demo-proof`.
 Windows OpenSSH Client was confirmed available (9.5). VMware Tools reported
 Guest IP `192.168.139.128` and Host VMnet8 IP `192.168.139.1`. Addresses can change;
 `hostname -I` in Ubuntu confirms the current Guest IP. Initial port 22 refused
-connections; this is not a successful SSH session.
+connections. After sshd/public-key setup, SSH login as `ubuntu` was confirmed
+with `id` (uid 1000), Ubuntu release and shared project path. All four test commands
+then passed directly in this Guest; see [actual results](DEMO_PROOF_TEST_RESULTS.md).
 
 ## One-time setup in Ubuntu Terminal
 
