@@ -1,0 +1,112 @@
+{
+  "platform": "Linux-7.0.0-1017-azure-x86_64-with-glibc2.39",
+  "time_utc": "2026-11-07T14:02:13Z",
+  "experiments": {
+    "safety": {
+      "status": "Completed",
+      "scene": "safety",
+      "results": {
+        "without": {
+          "purchases": 4,
+          "remaining": -3,
+          "oversold": true
+        },
+        "with": {
+          "purchases": 1,
+          "remaining": 0,
+          "oversold": false
+        }
+      },
+      "message": "Measured results saved. All experiment processes stopped.",
+      "sampled_at": 1794060133.3393214
+    },
+    "traffic": {
+      "status": "Completed",
+      "scene": "traffic",
+      "results": {
+        "uncontrolled": {
+          "Incoming requests": 1000,
+          "Pending requests": 996,
+          "Incoming": 1000,
+          "Accepted": 1000,
+          "Processed": 1000,
+          "Rejected": 0,
+          "Max queue size": 996,
+          "Worker threads": 4,
+          "Pending after drain": 0,
+          "capacity": null
+        },
+        "protected": {
+          "Incoming requests": 1000,
+          "Pending requests": 20,
+          "Incoming": 1000,
+          "Accepted": 326,
+          "Processed": 326,
+          "Rejected": 674,
+          "Max queue size": 20,
+          "Worker threads": 4,
+          "Pending after drain": 0,
+          "capacity": 20
+        }
+      },
+      "message": "Measured results saved. All experiment processes stopped.",
+      "sampled_at": 1794060136.7516992
+    },
+    "connections100": {
+      "status": "Completed",
+      "scene": "connections100",
+      "results": {
+        "blocking_server": {
+          "threads": 101,
+          "fds": 104,
+          "connected": 100,
+          "failures": 0,
+          "requested": 100,
+          "pid": 2528,
+          "baseline_fds": 4,
+          "phase": "Final held sample / historical"
+        },
+        "epoll_server": {
+          "threads": 1,
+          "fds": 105,
+          "connected": 100,
+          "failures": 0,
+          "requested": 100,
+          "pid": 2530,
+          "baseline_fds": 5,
+          "phase": "Final held sample / historical"
+        }
+      },
+      "message": "Measured results saved. All experiment processes stopped.",
+      "sampled_at": 1794060144.956654
+    },
+    "connections500": {
+      "status": "Completed",
+      "scene": "connections500",
+      "results": {
+        "epoll_server": {
+          "threads": 1,
+          "fds": 505,
+          "connected": 500,
+          "failures": 0,
+          "requested": 500,
+          "pid": 2638,
+          "baseline_fds": 5,
+          "phase": "Final held sample / historical"
+        }
+      },
+      "message": "Measured results saved. All experiment processes stopped.",
+      "sampled_at": 1794060153.1361809
+    }
+  },
+  "cancellation": "PASS: stopped held connections, no servers remain, ports reusable",
+  "port_conflict": "PASS: existing listener preserved; no experiment child launched",
+  "linux_status": "PASS",
+  "source": {
+    "run_url": "https://github.com/yyyunx/OS-presentation/actions/runs/42379662932",
+    "tested_commit": "63487ba1904cf19fadfe1b328af2689439ff4da9",
+    "artifact_url": "https://github.com/yyyunx/OS-presentation/actions/runs/42379662932/artifacts/13577680171",
+    "note": "Compact summary extracted from actual CI output. Full per-process logs are in the linked artifact."
+  }
+}
+

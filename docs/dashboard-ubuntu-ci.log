@@ -1,0 +1,164 @@
+Source: https://github.com/yyyunx/OS-presentation/actions/runs/42379662932
+Timestamps stripped from the downloaded job log; test values unchanged.
+
+##[group]Run make
+[36;1mmake[0m
+shell: /usr/bin/bash -e {0}
+##[endgroup]
+mkdir -p bin
+g++ -std=c++11 -O2 -Wall -Wextra -Wpedantic -pthread concurrency/concurrency_demo.cpp -o bin/concurrency_demo
+g++ -std=c++11 -O2 -Wall -Wextra -Wpedantic -pthread scheduling/scheduling_demo.cpp -o bin/scheduling_demo
+g++ -std=c++11 -O2 -Wall -Wextra -Wpedantic -pthread race-condition/race_demo.cpp -o bin/race_demo
+g++ -std=c++11 -O2 -Wall -Wextra -Wpedantic -pthread race-condition/mutex_demo.cpp -o bin/mutex_demo
+g++ -std=c++11 -O2 -Wall -Wextra -Wpedantic -pthread socket-server/socket_server.cpp -o bin/socket_server
+g++ -std=c++11 -O2 -Wall -Wextra -Wpedantic -pthread epoll-server/blocking_server.cpp -o bin/blocking_server
+g++ -std=c++11 -O2 -Wall -Wextra -Wpedantic -pthread epoll-server/epoll_server.cpp -o bin/epoll_server
+g++ -std=c++11 -O2 -Wall -Wextra -Wpedantic -pthread resource-management/resource_uncontrolled_demo.cpp -o bin/resource_uncontrolled_demo
+g++ -std=c++11 -O2 -Wall -Wextra -Wpedantic -pthread resource-management/resource_protected_demo.cpp -o bin/resource_protected_demo
+##[group]Run make test
+[36;1mmake test[0m
+shell: /usr/bin/bash -e {0}
+##[endgroup]
+python3 -m unittest discover -s tests -p 'test_*.py'
+........
+----------------------------------------------------------------------
+Ran 8 tests in 0.615s
+
+OK
+python3 tests/ubuntu_smoke.py
+PASS socket_server: framing, half-close, reset, 32 idle FDs/threads, cleanup, SIGINT
+PASS blocking_server: framing, half-close, reset, 32 idle FDs/threads, cleanup, SIGINT
+PASS epoll_server: framing, half-close, reset, 32 idle FDs/threads, cleanup, SIGINT
+PASS resource_uncontrolled_demo: {'Incoming requests': 1000, 'Pending requests': 996, 'Incoming': 1000, 'Accepted': 1000, 'Processed': 1000, 'Rejected': 0, 'Max queue size': 996, 'Worker threads': 4, 'Pending after drain': 0}
+PASS resource_uncontrolled_demo: {'Incoming requests': 1, 'Pending requests': 1, 'Incoming': 1, 'Accepted': 1, 'Processed': 1, 'Rejected': 0, 'Max queue size': 1, 'Worker threads': 4, 'Pending after drain': 0}
+PASS resource_protected_demo: {'Incoming requests': 1000, 'Pending requests': 20, 'Incoming': 1000, 'Accepted': 328, 'Processed': 328, 'Rejected': 672, 'Max queue size': 20, 'Worker threads': 4, 'Pending after drain': 0}
+PASS resource_protected_demo: {'Incoming requests': 1, 'Pending requests': 1, 'Incoming': 1, 'Accepted': 1, 'Processed': 1, 'Rejected': 0, 'Max queue size': 1, 'Worker threads': 4, 'Pending after drain': 0}
+All Phase 2 Ubuntu smoke checks passed.
+##[group]Run make test-demo-ui
+[36;1mmake test-demo-ui[0m
+shell: /usr/bin/bash -e {0}
+##[endgroup]
+python3 tests/dashboard_integration.py --output docs/dashboard-ubuntu-results.json
+safety: Completed
+traffic: Completed
+connections100: Completed
+connections500: Completed
+##[group]Run python3 - <<'PY'
+[36;1mpython3 - <<'PY'[0m
+[36;1mimport json[0m
+[36;1mfrom pathlib import Path[0m
+[36;1mpath = Path('docs/dashboard-ubuntu-results.json')[0m
+[36;1mif path.exists():[0m
+[36;1m    data = json.loads(path.read_text())[0m
+[36;1m    for result in data.get('experiments', {}).values():[0m
+[36;1m        result.pop('logs', None)[0m
+[36;1m    print(json.dumps(data, indent=2))[0m
+[36;1mPY[0m
+shell: /usr/bin/bash -e {0}
+##[endgroup]
+{
+  "platform": "Linux-7.0.0-1017-azure-x86_64-with-glibc2.39",
+  "time_utc": "2026-11-07T14:02:13Z",
+  "experiments": {
+    "safety": {
+      "status": "Completed",
+      "scene": "safety",
+      "results": {
+        "without": {
+          "purchases": 4,
+          "remaining": -3,
+          "oversold": true
+        },
+        "with": {
+          "purchases": 1,
+          "remaining": 0,
+          "oversold": false
+        }
+      },
+      "message": "Measured results saved. All experiment processes stopped.",
+      "sampled_at": 1794060133.3393214
+    },
+    "traffic": {
+      "status": "Completed",
+      "scene": "traffic",
+      "results": {
+        "uncontrolled": {
+          "Incoming requests": 1000,
+          "Pending requests": 996,
+          "Incoming": 1000,
+          "Accepted": 1000,
+          "Processed": 1000,
+          "Rejected": 0,
+          "Max queue size": 996,
+          "Worker threads": 4,
+          "Pending after drain": 0,
+          "capacity": null
+        },
+        "protected": {
+          "Incoming requests": 1000,
+          "Pending requests": 20,
+          "Incoming": 1000,
+          "Accepted": 326,
+          "Processed": 326,
+          "Rejected": 674,
+          "Max queue size": 20,
+          "Worker threads": 4,
+          "Pending after drain": 0,
+          "capacity": 20
+        }
+      },
+      "message": "Measured results saved. All experiment processes stopped.",
+      "sampled_at": 1794060136.7516992
+    },
+    "connections100": {
+      "status": "Completed",
+      "scene": "connections100",
+      "results": {
+        "blocking_server": {
+          "threads": 101,
+          "fds": 104,
+          "connected": 100,
+          "failures": 0,
+          "requested": 100,
+          "pid": 2528,
+          "baseline_fds": 4,
+          "phase": "Final held sample / historical"
+        },
+        "epoll_server": {
+          "threads": 1,
+          "fds": 105,
+          "connected": 100,
+          "failures": 0,
+          "requested": 100,
+          "pid": 2530,
+          "baseline_fds": 5,
+          "phase": "Final held sample / historical"
+        }
+      },
+      "message": "Measured results saved. All experiment processes stopped.",
+      "sampled_at": 1794060144.956654
+    },
+    "connections500": {
+      "status": "Completed",
+      "scene": "connections500",
+      "results": {
+        "epoll_server": {
+          "threads": 1,
+          "fds": 505,
+          "connected": 500,
+          "failures": 0,
+          "requested": 500,
+          "pid": 2638,
+          "baseline_fds": 5,
+          "phase": "Final held sample / historical"
+        }
+      },
+      "message": "Measured results saved. All experiment processes stopped.",
+      "sampled_at": 1794060153.1361809
+    }
+  },
+  "cancellation": "PASS: stopped held connections, no servers remain, ports reusable",
+  "port_conflict": "PASS: existing listener preserved; no experiment child launched",
+  "linux_status": "PASS"
+}
+

@@ -213,3 +213,20 @@ README 已更新至此實測狀態；本次僅更新文件，沒有 commit／pus
 改善來自模擬 I/O 等待時間重疊，不代表 CPU 本身執行速度提升，亦不是 CPU 密集工作吞吐量 benchmark。
 沒有提供原始 log、重複執行次數或彙總方式，故不把本組數字宣稱為平均值或三次中位數。
 簡報 P5 與本次 Reviewed 講稿使用這組 Ubuntu 結果；前面的 Windows MinGW 數字保留為歷史紀錄。
+
+## 2026-11-07 — Concert Ticket Rush Dashboard Ubuntu CI
+
+本次已實際在 GitHub-hosted Ubuntu 24.04.5 LTS x86_64 執行，不是使用者
+VMware VM 的回報，也不是 macOS 結果。[完整紀錄與證據](docs/DASHBOARD_TEST_RESULTS.md)。
+
+- `make`、`make test`、`make test-demo-ui` 全部通過。
+- Race：4 purchases / -3 remaining；Mutex：1 / 0。
+- 100 idle clients：blocking 100 connected、0 failures、101 threads、104 FDs；
+  epoll 100 connected、0 failures、1 thread、105 FDs。
+- 500 epoll idle clients：500 connected、0 failures、1 thread、505 FDs。
+- 1000 local simulated requests：uncontrolled 1000 processed、0 rejected、Max Queue 996；
+  protected 326 processed、674 rejected、Max Queue 20；均為 4 workers，排空後 queue = 0。
+- 實際 held connections 的取消／Reset、程序退出、port 可重用及 port 衝突保護均通過。
+
+數字來自[成功的 Ubuntu workflow](https://github.com/yyyunx/OS-presentation/actions/runs/42379662932)。
+連線不是購票交易；resource demo 是獨立本機模擬。不同執行的接受／拒絕數可以不同。

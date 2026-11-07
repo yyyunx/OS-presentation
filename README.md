@@ -7,6 +7,8 @@
 Ubuntu 專案根目錄執行 `make demo-ui`，再以同一台 VM 的瀏覽器開啟
 **http://127.0.0.1:8765**。三個場景為 Ticket Safety、Connection Rush、Traffic Control；
 所有數字來自既有程式輸出與 Linux `/proc`，動畫另外標示為教學示意。
+2026-11-07 已在 GitHub Ubuntu 24.04 CI 通過 `make`、`make test` 與
+`make test-demo-ui`，包括 100／500 idle connections 及停止／清理；詳見下方實測紀錄。
 
 - [啟動、展示、停止／清理及測試步驟](docs/DASHBOARD.md)
 - [三分鐘英文 Demo 操作稿與 PPT P14 修改建議](presentation/Dashboard_3min_Demo_and_P14.md)
