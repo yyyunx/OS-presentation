@@ -11,6 +11,7 @@ from pathlib import Path
 import platform
 import socket
 import sys
+import tempfile
 import time
 
 spec = importlib.util.spec_from_file_location('dashboard', Path(__file__).resolve().parents[1] / 'demo-ui/controller.py')
@@ -43,7 +44,8 @@ def main():
     parser.add_argument('--output', default='dashboard-results.json')
     args = parser.parse_args()
     evidence = {'platform': platform.platform(), 'time_utc': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()), 'experiments': {}}
-    app = dashboard.Dashboard()
+    runtime = tempfile.TemporaryDirectory(prefix='dashboard-integration-')
+    app = dashboard.Dashboard(Path(runtime.name) / 'events.jsonl')
     try:
         for scene in ('safety', 'traffic'):
             evidence['experiments'][scene] = run(app, scene)
@@ -91,6 +93,7 @@ def main():
     finally:
         app.stop()
         Path(args.output).write_text(json.dumps(evidence, indent=2) + '\n')
+        runtime.cleanup()
 
 
 if __name__ == '__main__':

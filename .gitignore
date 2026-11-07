@@ -5,3 +5,4 @@ __pycache__/
 *.ppt
 *.pptx
 /.runtime/
+/docs/dashboard-ubuntu-results.json

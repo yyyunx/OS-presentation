@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 import subprocess
 import sys
+import tempfile
 import threading
 import unittest
 from unittest.mock import patch
@@ -15,6 +16,11 @@ spec.loader.exec_module(dashboard)
 
 
 class DashboardTests(unittest.TestCase):
+    def setUp(self):
+        self.runtime = tempfile.TemporaryDirectory(prefix='dashboard-unit-')
+        self.addCleanup(self.runtime.cleanup)
+        self.journal_path = Path(self.runtime.name) / 'events.jsonl'
+
     def test_ticket_parser_uses_final_inventory(self):
         values = dashboard.parse_safety('Tickets remaining = 1\nSuccessful purchases = 4\nTickets remaining = -3\n')
         self.assertEqual(values, dict(purchases=4, remaining=-3, oversold=True))
@@ -31,7 +37,7 @@ class DashboardTests(unittest.TestCase):
                 dashboard.parse_traffic(invalid, True)
 
     def test_allowlist_and_duplicate_runs(self):
-        app = dashboard.Dashboard()
+        app = dashboard.Dashboard(self.journal_path)
         with self.assertRaises(dashboard.ExperimentError):
             app.start('rm -rf /')
         with self.assertRaises(dashboard.ExperimentError):
@@ -45,7 +51,7 @@ class DashboardTests(unittest.TestCase):
         self.assertEqual(app.snapshot()['results'], {})
 
     def test_timeout_and_cancel_reap_real_child(self):
-        app = dashboard.Dashboard()
+        app = dashboard.Dashboard(self.journal_path)
         child = dashboard.Child([sys.executable, '-c', 'import time; time.sleep(30)'], 'timeout fixture')
         app.children.append(child)
         try:
@@ -60,7 +66,7 @@ class DashboardTests(unittest.TestCase):
         self.assertIsNotNone(child.process.poll())
 
     def test_http_rejects_cross_origin_and_arbitrary_commands(self):
-        server = dashboard.make_server(0)
+        server = dashboard.make_server(0, self.journal_path)
         thread = threading.Thread(target=server.serve_forever)
         thread.start()
         host = '127.0.0.1:{}'.format(server.server_port)

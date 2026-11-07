@@ -456,9 +456,9 @@ class Handler(BaseHTTPRequestHandler):
         pass
 
 
-def make_server(port=8765):
+def make_server(port=8765, journal_path=None):
     server = ThreadingHTTPServer(('127.0.0.1', port), Handler)
-    server.dashboard = Dashboard()
+    server.dashboard = Dashboard(journal_path)
     server.token = secrets.token_urlsafe(32)
     server.actions = threading.Lock()
     return server

@@ -138,7 +138,7 @@ def main():
                 if count == 500:
                     # Technical Logs' complete-output route retains the noisy raw
                     # output that the native Terminal intentionally summarizes.
-                    server = controller.make_server(0)
+                    server = controller.make_server(0, Path(directory) / 'http-events.jsonl')
                     server.dashboard = app
                     thread = threading.Thread(target=server.serve_forever)
                     thread.start()
