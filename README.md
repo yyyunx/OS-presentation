@@ -2,6 +2,19 @@
 
 專案名稱：`ticket-rush-os-demo`
 
+## Concert Ticket Rush Dashboard
+
+Ubuntu 專案根目錄執行 `make demo-ui`，再以同一台 VM 的瀏覽器開啟
+**http://127.0.0.1:8765**。三個場景為 Ticket Safety、Connection Rush、Traffic Control；
+所有數字來自既有程式輸出與 Linux `/proc`，動畫另外標示為教學示意。
+
+- [啟動、展示、停止／清理及測試步驟](docs/DASHBOARD.md)
+- [三分鐘英文 Demo 操作稿與 PPT P14 修改建議](presentation/Dashboard_3min_Demo_and_P14.md)
+- [本次實際測試紀錄](docs/DASHBOARD_TEST_RESULTS.md)
+
+執行 `make test-demo-ui` 可驗證 Race/Mutex、100 idle clients 對照、500 epoll
+idle clients、1000 requests、取消與 port 衝突，並保存原始輸出和測量紀錄。
+
 ## 報告與展示資料
 
 15 分鐘英文報告的中英對照講稿、Ubuntu Demo 指令和 P5 計時來源整理於
@@ -11,9 +24,9 @@ P5 使用使用者於 2026-11-07 回報的 Ubuntu VM 結果：Sequential 2009.97
 Multithread 111.85 ms、17.97x；加速來自模擬 I/O 等待重疊，不是 CPU 本身變快。
 
 這是 OS 課程的 terminal 實作 Demo，以熱門演唱會搶票展示作業系統概念。
-不是實際售票網站，沒有 GUI、Web framework 或支付功能。
+不是實際售票網站；新增的本機 Dashboard 僅控制既有實驗，沒有 Web framework 或支付功能。
 Phase 1 與 Phase 2 的六個 Demo 已完成實作。主要執行環境為 VMware Ubuntu，
-使用 Linux API、C++11、g++、Makefile；Python 僅用於大量 clients 與測試。
+使用 Linux API、C++11、g++、Makefile；Python 用於大量 clients、測試及標準函式庫本機 Dashboard 控制器。
 Phase 1 的四份 C++ 原始碼與行為保留不變。
 2026-10-29 使用者已在 VMware Ubuntu 完成 Phase 2 的 `make test`，全部通過。
 
@@ -514,7 +527,8 @@ FD 上限與 500 clients 是可選加分實驗；先確認 100 clients 在 VM �
 
 ## 實測狀態
 
-詳見 [TEST_RESULTS.md](TEST_RESULTS.md)。Codex 目前在 Windows，無法操作 VMware terminal。
+既有歷史驗證詳見 [TEST_RESULTS.md](TEST_RESULTS.md)；Dashboard 新增驗證見
+[本次紀錄](docs/DASHBOARD_TEST_RESULTS.md)。下段為舊有 Windows／VMware 紀錄。
 Phase 1 沿用原本已通過的測試；Phase 2 的資源模擬器可以做 MinGW 額外驗證。
 2026-10-29 修正啟動探測的 FD 基準時序漏洞後，使用者在 VMware Ubuntu 重跑 `make test`，
 截圖顯示 **All Phase 2 Ubuntu smoke checks passed**：三支網路 server、

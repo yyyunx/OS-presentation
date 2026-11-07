@@ -12,7 +12,7 @@ PHASE2 = bin/socket_server$(EXE) bin/blocking_server$(EXE) \
          bin/resource_protected_demo$(EXE)
 NETWORK_HEADERS = socket-server/net_utils.h socket-server/blocking_ticket_server.h
 
-.PHONY: all phase1 phase2 test clean
+.PHONY: all phase1 phase2 test demo-ui test-demo-ui clean
 all: $(PHASE1) $(PHASE2)
 phase1: $(PHASE1)
 phase2: $(PHASE2)
@@ -51,6 +51,12 @@ bin/resource_protected_demo$(EXE): resource-management/resource_protected_demo.c
 test: all
 	python3 -m unittest discover -s tests -p 'test_*.py'
 	python3 tests/ubuntu_smoke.py
+
+demo-ui: all
+	python3 demo-ui/controller.py
+
+test-demo-ui: all
+	python3 tests/dashboard_integration.py --output docs/dashboard-ubuntu-results.json
 
 clean:
 	rm -rf bin

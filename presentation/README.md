@@ -3,6 +3,14 @@
 These materials accompany the 15-slide English report **From Click to Checkout:
 An Operating System Perspective on Online Ticketing**.
 
+## Dashboard alternative for slide 14
+
+Use [the three-minute Dashboard script and P14 revision suggestions](Dashboard_3min_Demo_and_P14.md)
+for the new local interface. Start it with `make demo-ui` in Ubuntu and open
+http://127.0.0.1:8765 in the same VM. This replaces the manual terminal demo
+sequence below when presenting the Dashboard; the earlier reviewed notes remain
+available as the original version.
+
 ## Speaker notes and demo
 
 - [Bilingual speaker notes in Markdown](Ticket_Rush_Bilingual_Speaker_Notes_15min_Reviewed.md)

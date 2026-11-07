@@ -1,0 +1,38 @@
+name: Ubuntu dashboard verification
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  ubuntu:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build unchanged C++ demos
+        run: make
+      - name: Existing smoke tests and dashboard regression tests
+        run: make test
+      - name: Real dashboard experiments and cleanup checks
+        run: make test-demo-ui
+      - name: Print measured summary
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          path = Path('docs/dashboard-ubuntu-results.json')
+          if path.exists():
+              data = json.loads(path.read_text())
+              for result in data.get('experiments', {}).values():
+                  result.pop('logs', None)
+              print(json.dumps(data, indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: dashboard-measurements
+          path: docs/dashboard-ubuntu-results.json
+          if-no-files-found: ignore

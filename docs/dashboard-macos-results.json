@@ -1,0 +1,59 @@
+{
+  "platform": "macOS-26.5.2-arm64-arm-64bit",
+  "time_utc": "2026-11-07T12:41:17Z",
+  "experiments": {
+    "safety": {
+      "status": "Completed",
+      "scene": "safety",
+      "results": {
+        "without": {
+          "purchases": 4,
+          "remaining": -3,
+          "oversold": true
+        },
+        "with": {
+          "purchases": 1,
+          "remaining": 0,
+          "oversold": false
+        }
+      },
+      "logs": "--- race_demo (PID 52970) ---\n=== The Last Ticket: Race Condition (no mutex) ===\nTickets remaining = 1\nAlice sees ticket = 1\nBob sees ticket = 1\nCharlie sees ticket = 1\nDavid sees ticket = 1\nAlice purchased ticket\nBob purchased ticket\nDavid purchased ticket\nCharlie purchased ticket\n\nSuccessful purchases = 4\nTickets remaining = -3\nOVERSELLING: checking and decrementing must be one operation.\n\n--- mutex_demo (PID 52971) ---\n=== The Last Ticket: Mutex ===\nTickets remaining = 1\nCharlie purchased the last ticket\nDavid: SOLD OUT\nAlice: SOLD OUT\nBob: SOLD OUT\n\nSuccessful purchases = 1\nTickets remaining = 0\nThe winner depends on scheduling; std::mutex does not promise FIFO.\n",
+      "message": "Measured results saved. All experiment processes stopped.",
+      "sampled_at": 1794055278.563027
+    },
+    "traffic": {
+      "status": "Completed",
+      "scene": "traffic",
+      "results": {
+        "uncontrolled": {
+          "Incoming requests": 1000,
+          "Pending requests": 996,
+          "Incoming": 1000,
+          "Accepted": 1000,
+          "Processed": 1000,
+          "Rejected": 0,
+          "Max queue size": 996,
+          "Worker threads": 4,
+          "Pending after drain": 0,
+          "capacity": null
+        },
+        "protected": {
+          "Incoming requests": 1000,
+          "Pending requests": 20,
+          "Incoming": 1000,
+          "Accepted": 355,
+          "Processed": 355,
+          "Rejected": 645,
+          "Max queue size": 20,
+          "Worker threads": 4,
+          "Pending after drain": 0,
+          "capacity": 20
+        }
+      },
+      "logs": "--- resource_uncontrolled_demo (PID 52974) ---\n=== Uncontrolled ===\nIncoming requests: 1000\nWorker Threads = 4\nQueue Capacity = unbounded\nProcessing time: 10 ms/request\nArrival delay: 0 ms/request\nPending requests: 99\nPending requests: 199\nPending requests: 299\nPending requests: 399\nPending requests: 499\nPending requests: 599\nPending requests: 698\nPending requests: 798\nPending requests: 896\nPending requests: 996\n\n=== Server Statistics ===\n\nIncoming: 1000\nAccepted: 1000\nProcessed: 1000\nRejected: 0\nMax queue size: 996\nWorker threads: 4\nPending after drain: 0\n\n--- resource_protected_demo (PID 52981) ---\n=== Protected ===\nIncoming requests: 1000\nWorker Threads = 4\nQueue Capacity = 20\nProcessing time: 10 ms/request\nArrival delay: 0 ms/request\nRequest 1 accepted\nRequest 2 accepted\nRequest 3 accepted\nRequest 4 accepted\nRequest 5 accepted\nRequest 6 accepted\nRequest 7 accepted\nRequest 8 accepted\nQueue full: backpressure waits up to 1 ms\nQueue full\nRequest 25 rejected (BUSY)\nQueue full\nRequest 26 rejected (BUSY)\nQueue full\nRequest 27 rejected (BUSY)\nQueue full\nRequest 28 rejected (BUSY)\nQueue full\nRequest 29 rejected (BUSY)\nQueue full\nRequest 30 rejected (BUSY)\nQueue full\nRequest 31 rejected (BUSY)\nQueue full\nRequest 32 rejected (BUSY)\nQueue full\nRequest 100 rejected (BUSY)\nPending requests: 20\nRequest 200 accepted\nPending requests: 20\nRequest 300 accepted\nPending requests: 20\nQueue full\nRequest 400 rejected (BUSY)\nPending requests: 20\nQueue full\nRequest 500 rejected (BUSY)\nPending requests: 20\nQueue full\nRequest 600 rejected (BUSY)\nPending requests: 20\nRequest 700 accepted\nPending requests: 20\nRequest 800 accepted\nPending requests: 19\nRequest 900 accepted\nPending requests: 20\nQueue full\nRequest 1000 rejected (BUSY)\nPending requests: 20\n\n=== Server Statistics ===\n\nIncoming: 1000\nAccepted: 355\nProcessed: 355\nRejected: 645\nMax queue size: 20\nWorker threads: 4\nPending after drain: 0\n",
+      "message": "Measured results saved. All experiment processes stopped.",
+      "sampled_at": 1794055283.538996
+    }
+  },
+  "linux_status": "NOT RUN: Linux /proc and epoll unavailable"
+}

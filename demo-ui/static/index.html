@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ENCORE · Concert Ticket Rush</title><link rel="stylesheet" href="/style.css"><script src="/app.js" defer></script></head>
+<body>
+<header><a class="brand" href="/">ENCORE<span>OS LIVE LAB / 2026</span></a><div class="local"><i></i> LOCAL EXPERIMENT · 127.0.0.1</div></header>
+<main>
+<section class="hero"><div><p class="eyebrow">ONE STAGE. THOUSANDS OF FANS.</p><h1>Every click.<br>One last <em>ticket.</em></h1><p class="intro">Inside the operating system behind a concert ticket rush.<br>Three experiments. Real processes. Measured evidence.</p></div><div class="concert" aria-hidden="true"><div class="beam b1"></div><div class="beam b2"></div><div class="stage">ENCORE<small>THE LAST SEAT TOUR</small><span>LIVE</span></div><div class="crowd">▂ ▄ ▃ ▆ ▂ ▅ ▃ ▆ ▄ ▂ ▅ ▃ ▆ ▄ ▂ ▅</div></div></section>
+<nav aria-label="Experiments"><button class="tab active" data-scene="safety">01 <span>Ticket Safety</span><small>Protect the last seat</small></button><button class="tab" data-scene="connections100">02 <span>Connection Rush</span><small>Handle the waiting crowd</small></button><button class="tab" data-scene="traffic">03 <span>Traffic Control</span><small>Keep the queue bounded</small></button></nav>
+<section class="lab" aria-labelledby="scene-title"><div class="scene-head"><div><p class="eyebrow" id="scene-kicker"></p><h2 id="scene-title"></h2><p id="scene-description"></p></div><span class="status" id="status" role="status">Waiting</span></div>
+<div class="toolbar"><div id="connection-options" hidden><label for="mode">Experiment</label> <select id="mode"><option value="connections100">100 idle connections · compare both</option><option value="connections500">500 idle connections · epoll only</option></select></div><button id="run" class="primary">▶ Run experiment</button><button id="stop" disabled>■ Stop</button><button id="reset">↻ Reset</button></div>
+<p class="message" id="message" role="status"></p><div class="metrics-head"><h3>Live Metrics</h3><span id="provenance">No measurements yet</span></div><div id="metrics" class="comparison"></div><div id="bars" class="chart"></div>
+<div class="illustration"><div><span class="label">TEACHING ANIMATION</span><p id="animation-caption"></p></div><div id="animation" aria-hidden="true"></div><small>Conceptual illustration — not a live trace or measured queue occupancy.</small></div>
+<div class="conclusion"><span>CONCLUSION</span><p id="conclusion"></p></div>
+<details><summary>Technical Logs <span>Raw process output / diagnostic evidence</span></summary><pre id="logs">No processes have run.</pre></details>
+</section><footer>OS MIDTERM · CONCERT TICKET RUSH <span>Local classroom demonstration · No payments or real ticket inventory</span></footer>
+</main></body></html>
