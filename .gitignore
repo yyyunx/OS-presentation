@@ -2,3 +2,5 @@
 __pycache__/
 *.pyc
 /presentation/ubuntu-concurrency-retest/
+*.ppt
+*.pptx

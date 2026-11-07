@@ -41,4 +41,4 @@ ls "/proc/$epoll_pid/fd" | wc -l
 
 # Ubuntu-only slide 5 retest: run this once and allow about 10 seconds.
 # It builds concurrency_demo and saves three raw runs plus median timing JSON.
-python3 /mnt/hgfs/presentation/output/Ubuntu_Concurrency_Retest.py
+python3 presentation/Ubuntu_Concurrency_Retest.py
