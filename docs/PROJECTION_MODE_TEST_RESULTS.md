@@ -9,13 +9,13 @@ Direct SSH to the user's running VMware Ubuntu 24.04.5 LTS, Linux
 7.0.0-42-generic x86_64; project in the same Windows Shared Folder, user-mounted
 at `/home/ubuntu/os-demo-share/presentation/ticket-rush-os-demo`.
 
-- `make test`: all 20 regressions and all original Linux smoke checks passed.
+- `make test`: all 21 regressions and all original Linux smoke checks passed.
 - `make test-demo-ui`: all real safety/traffic/100/500-connection and cleanup
   checks passed.
 - `make test-demo-proof`: all 10 checks passed, including actual detailed and
   presentation CLI followers; real C++ output/proc values; LIVE versus stale,
   replay and completion; occupied ports, nonzero exit, cancel/reset/rerun.
-- Six new portable projection regressions passed on Windows as well. Values in
+- Seven new portable projection regressions passed on Windows as well. Values in
   formatting fixtures differ deliberately from demo measurements, to check that
   the formatter displays data instead of hard-coded results.
 
@@ -31,6 +31,12 @@ C++ listener. Real listening sockets are still rejected and preserved (no
 SO_REUSEPORT). The full VMware suite was rerun successfully after this fix.
 First-frame TTY repaint also clears any echoed command suffix; subsequent
 Completed summaries stay on screen until a new run.
+
+Visual QA then caught short-line/blank-row suffixes on the actual native TTY.
+Each row is now erased before repaint. A VT screen-state regression checks that
+shorter and blank rows remove old contents; a new five-second actual C++ Safety
+capture was inspected and confirmed clean. All 21 regressions and real proof
+integration were rerun successfully after this final renderer correction.
 
 ## Video verification
 

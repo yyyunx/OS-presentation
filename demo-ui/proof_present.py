@@ -232,8 +232,11 @@ class FramePrinter:
             return False
         if self.interactive:
             # A new experiment replaces the panel. Completion never clears it.
-            self.stream.write('\x1b[2J\x1b[H' if self.previous is None or run_id != self.run_id else '\x1b[H')
-            self.stream.write(frame + '\x1b[0J')
+            prefix = '\x1b[2J\x1b[H' if self.previous is None or run_id != self.run_id else '\x1b[H'
+            # Erase EACH row, including blanks: shorter values must not leave
+            # suffixes from the preceding frame. Write one complete repaint.
+            rows = '\n'.join('\x1b[2K' + line for line in frame.split('\n'))
+            self.stream.write(prefix + rows + '\x1b[0J')
         else:
             self.stream.write(frame + '\n\n')
         self.stream.flush()

@@ -135,6 +135,42 @@ class PresentationTests(unittest.TestCase):
         self.assert_frame(state.frame())
         self.assertNotIn('\x1b[2J', state.frame())
 
+    def test_tty_repaint_removes_shorter_lines_and_blank_row_tails(self):
+        stream = io.StringIO()
+        printer = FramePrinter(stream, interactive=True)
+        printer.show('Long old heading\nold values and suffix\nold third row', 'same-run')
+        printer.show('New\n\nok', 'same-run')
+        # Minimal VT screen interpreter: assert the DISPLAY, not just stdout.
+        rows, row, column = [[]], 0, 0
+        output, index = stream.getvalue(), 0
+        while index < len(output):
+            command = re.match(r'\x1b\[([0-9;]*)([A-Za-z])', output[index:])
+            if command:
+                value, code = command.groups()
+                if code == 'H':
+                    row, column = 0, 0
+                elif code == 'J' and value == '2':
+                    rows = [[]]
+                elif code == 'K' and value == '2':
+                    rows[row] = []
+                elif code == 'J':
+                    rows[row] = rows[row][:column]
+                    rows = rows[:row + 1]
+                index += len(command[0])
+                continue
+            char = output[index]
+            if char == '\n':
+                row, column = row + 1, 0
+                while len(rows) <= row:
+                    rows.append([])
+            else:
+                while len(rows[row]) <= column:
+                    rows[row].append(' ')
+                rows[row][column] = char
+                column += 1
+            index += 1
+        self.assertEqual([''.join(line) for line in rows], ['New', '', 'ok'])
+
     def test_cli_old_journal_historical_and_nonzero_error(self):
         with tempfile.TemporaryDirectory() as temp:
             path = Path(temp) / 'journal.jsonl'
