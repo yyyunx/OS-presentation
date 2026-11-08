@@ -24,6 +24,14 @@ Git), including original output, events, live panels, projection summaries,
 both CLI transcripts and historical replays. Every checked panel fits 58 display
 cells per line and at most 38 lines. Repeated identical frames are suppressed.
 
+The first pass succeeded; a subsequent rerun and the first CI attempt exposed
+an existing port-probe issue: TCP TIME_WAIT could be mistaken for a live listener.
+Controller preflight and test probes now use SO_REUSEADDR, matching the unchanged
+C++ listener. Real listening sockets are still rejected and preserved (no
+SO_REUSEPORT). The full VMware suite was rerun successfully after this fix.
+First-frame TTY repaint also clears any echoed command suffix; subsequent
+Completed summaries stay on screen until a new run.
+
 ## Video verification
 
 Recording/verification pending. The v1 MP4 is preserved with SHA-256

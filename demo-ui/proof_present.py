@@ -232,7 +232,7 @@ class FramePrinter:
             return False
         if self.interactive:
             # A new experiment replaces the panel. Completion never clears it.
-            self.stream.write('\x1b[2J\x1b[H' if run_id != self.run_id else '\x1b[H')
+            self.stream.write('\x1b[2J\x1b[H' if self.previous is None or run_id != self.run_id else '\x1b[H')
             self.stream.write(frame + '\x1b[0J')
         else:
             self.stream.write(frame + '\n\n')

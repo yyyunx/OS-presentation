@@ -202,6 +202,7 @@ def main():
             finish(app)
             collect('rerun after reset: new run id and real short programs')
             with socket.socket() as occupied:
+                occupied.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
                 occupied.bind(('127.0.0.1', 8081))
                 occupied.listen()
                 app.start('connections100')

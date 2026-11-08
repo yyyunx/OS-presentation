@@ -124,6 +124,9 @@ class PresentationTests(unittest.TestCase):
         self.assertEqual(stream.getvalue(), before)
         printer.show(frame + '\nCompleted', state.run_id)
         self.assertEqual(stream.getvalue().count('\x1b[2J'), 1)
+        initial = io.StringIO()
+        FramePrinter(initial, interactive=True).show('Waiting', None)
+        self.assertTrue(initial.getvalue().startswith('\x1b[2J\x1b[H'))
 
     def test_hostile_controls_and_wide_error_lines_are_bounded(self):
         state = self.start('safety')

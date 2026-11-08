@@ -310,6 +310,9 @@ class Dashboard:
         # Fail without touching other applications when a demo port is occupied.
         for _, port in specs:
             with socket.socket() as probe:
+                # Match create_listener(): TIME_WAIT is not a live listener.
+                # A real listening socket still rejects this bind (no REUSEPORT).
+                probe.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
                 try:
                     probe.bind(('127.0.0.1', port))
                 except OSError:

@@ -36,6 +36,7 @@ def run(app, scene):
 def ports_free():
     for port in (8081, 8082):
         with socket.socket() as probe:
+            probe.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             probe.bind(('127.0.0.1', port))
 
 
@@ -76,6 +77,7 @@ def main():
         ports_free()
         evidence['cancellation'] = 'PASS: stopped held connections, no servers remain, ports reusable'
         with socket.socket() as occupied:
+            occupied.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             occupied.bind(('127.0.0.1', 8081))
             occupied.listen()
             app.start('connections100')
