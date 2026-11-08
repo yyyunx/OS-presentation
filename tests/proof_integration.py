@@ -20,6 +20,7 @@ spec = importlib.util.spec_from_file_location('proof_controller', ROOT / 'demo-u
 controller = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(controller)
 from proof import EventReader, render
+from proof_present import PresentationState, cells, WIDTH
 
 
 def wait_for(predicate, timeout=15):
@@ -57,6 +58,30 @@ def verify_run(events):
             assert 'PASS' in render(event)
     assert events[-1]['kind'] == 'run_end'
     assert events[-1]['cleanup'].startswith('PASS')
+    panel = PresentationState()
+    live_panels = []
+    for event in events:
+        panel.apply(event)
+        if event['kind'] == 'proc_sample':
+            frame = panel.frame(now=event['sampled_at'])
+            assert 'LIVE' in frame
+            for key in ('pid', 'connected', 'threads', 'fds', 'failures'):
+                assert str(event[key]) in frame
+            live_panels.append(frame)
+    final = panel.frame()
+    assert panel.run_id in final and 'Historical' in final
+    assert all(cells(line) <= WIDTH for line in final.splitlines())
+    assert len(final.splitlines()) <= 38
+    assert '/tmp/' not in final and '/home/' not in final
+    for event in events:
+        if event['kind'] == 'result':
+            v = event['values']
+            if event['scene'] == 'safety':
+                assert 'Purchases {}'.format(v['purchases']) in final
+                assert 'Remaining {}'.format(v['remaining']) in final
+            else:
+                assert '{} + {} = {} PASS'.format(v['Processed'], v['Rejected'], v['Incoming']) in final
+    return final, live_panels
 
 
 def main():
@@ -76,11 +101,17 @@ def main():
         viewer = subprocess.Popen([sys.executable, str(ROOT / 'demo-ui/proof.py'),
                                   '--journal', str(journal)], stdout=viewer_log,
                                   stderr=subprocess.STDOUT)
+        present_path = Path(directory) / 'presentation.txt'
+        present_log = present_path.open('w')
+        present = subprocess.Popen([sys.executable, str(ROOT / 'demo-ui/proof.py'), '--present',
+                                    '--color', 'always', '--journal', str(journal)],
+                                    stdout=present_log, stderr=subprocess.STDOUT)
 
         def collect(label):
             events = reader.read()
-            verify_run(events)
+            summary, live = verify_run(events)
             evidence['runs'].append({'test': label, 'events': events,
+                'presentation_summary': summary, 'presentation_live_panels': live,
                 'raw': {e['log_path']: Path(e['log_path']).read_text() for e in events if e['kind'] == 'process_start'}})
             evidence['tests'].append(label)
             print('PASS ' + label, flush=True)
@@ -88,6 +119,7 @@ def main():
 
         try:
             wait_for(lambda: 'Waiting for Dashboard' in viewer_path.read_text())
+            wait_for(lambda: 'Waiting for Dashboard' in present_path.read_text())
             # Deliberately do not read the journal until BOTH short processes exit.
             for scene in ('safety', 'traffic'):
                 app.start(scene)
@@ -196,6 +228,23 @@ def main():
             assert 'Workers=4' in transcript and 'Threads=101' in transcript
             assert 'Threads=1 FDs=505' in transcript
             assert app.full_logs() and 'Usage:' in app.full_logs()
+            wait_for(lambda: 'Exit Code 1' in present_path.read_text() and
+                     'partial / failed' in present_path.read_text())
+            present.send_signal(signal.SIGINT)
+            present.wait(timeout=3)
+            projection = present_path.read_text()
+            assert 'Blocking LIVE' in projection and 'epoll LIVE' in projection
+            assert '\x1b[32m' in projection and '\x1b[31m' in projection
+            assert '/home/' not in projection and '/tmp/' not in projection
+            assert 'SUMMARY / COMPLETED' in projection
+            assert 'SUMMARY / ERROR' in projection
+            replay = subprocess.check_output([sys.executable, str(ROOT / 'demo-ui/proof.py'),
+                '--present', '--color', 'never', '--once', '--all', '--journal', str(journal)], text=True)
+            assert 'Blocking LIVE' not in replay and 'epoll LIVE' not in replay
+            assert 'Historical' in replay and 'SUMMARY / ERROR' in replay
+            evidence['presentation_transcript'] = projection
+            evidence['presentation_historical_replay'] = replay
+            evidence['tests'].append('projection mode: real fields, LIVE/Historical, compact width, cancellation/error/rerun')
             wait_for(lambda: 'Exit Code=1' in viewer_path.read_text() and
                      'Original outcome=Error' in viewer_path.read_text())
             viewer.send_signal(signal.SIGINT)
@@ -222,6 +271,10 @@ def main():
                 viewer.send_signal(signal.SIGINT)
                 viewer.wait(timeout=3)
             viewer_log.close()
+            if present.poll() is None:
+                present.send_signal(signal.SIGINT)
+                present.wait(timeout=3)
+            present_log.close()
             args.output.parent.mkdir(parents=True, exist_ok=True)
             args.output.write_text(json.dumps(evidence, indent=2) + '\n')
 

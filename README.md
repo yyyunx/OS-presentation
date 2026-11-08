@@ -23,12 +23,15 @@ make demo-ui
 
 ```bash
 # Terminal B：真正的 Ubuntu Terminal，放在畫面右邊
-make demo-proof
+make demo-proof-present
+# 需要完整逐事件紀錄時，改用原本的 make demo-proof
 ```
 
 在**同一台 Ubuntu VM** 的瀏覽器開啟 **http://127.0.0.1:8765**，放在左邊。
 Ubuntu GNOME 可選取瀏覽器按 `Super+Left`，選取 Terminal B 按 `Super+Right`；
-其他桌面可直接拖曳到螢幕左右邊緣。Terminal A 留在背景，視需要調小字體／瀏覽器縮放。
+其他桌面可直接拖曳到螢幕左右邊緣。Terminal A 留在背景。
+投影建議 1920×1080、Dashboard 左側 60%、Terminal 右側 40%，
+Monospace 13 pt（96 DPI 約 17 px）；優先保留清楚字體。
 Terminal B 是獨立 Python 監看程式，沒有嵌入網頁的假 Terminal。
 
 依序操作左側 **Ticket Safety → Run experiment**、
@@ -39,6 +42,12 @@ Terminal B 是獨立 Python 監看程式，沒有嵌入網頁的假 Terminal。
 - Race/Mutex 的購票／剩餘票／超賣結果；程式即使很快結束，也不會被狀態輪詢漏掉。
 - 保持連線期間每約 0.8 秒讀取 Linux `/proc` 的 Threads／FDs，搭配 client 實際輸出的 Connected／Failures。
 - Queue 的 Incoming／Processed／Rejected／Max Queue／Workers，以及守恆檢查。
+
+`make demo-proof-present` 使用同一份真實事件日誌，顯示 58 欄內的穩定摘要面板、
+完整 Run ID、PID、相對指令、Exit Code 和 Cleanup；時間以本機時區 HH:MM 顯示。
+LIVE `/proc` 與 Historical 會清楚區分。相同數值不重複洗版，完成後保留 Summary，
+直到下一個實驗才換頁。詳細 ISO 時間、完整 argv 與 raw log 路徑仍保留在
+`make demo-proof`、Technical Logs 與原始檔中。
 
 終端只列關鍵摘要，不列出每條 client 連線。完整 stdout/stderr 保存在忽略於 Git 的
 `.runtime/demo-proof/`；Technical Logs 可開啟完整輸出（頁內預覽仍限最後 24,000 字元）。

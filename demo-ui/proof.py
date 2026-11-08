@@ -143,7 +143,12 @@ def main():
     parser.add_argument('--journal', type=Path, default=DEFAULT_JOURNAL)
     parser.add_argument('--once', action='store_true', help='print saved evidence and exit')
     parser.add_argument('--all', action='store_true', help='replay all saved runs (default: latest run)')
+    parser.add_argument('--present', action='store_true', help='compact projection panel from the same real events')
+    parser.add_argument('--color', choices=('auto', 'always', 'never'), default='auto')
     args = parser.parse_args()
+    if args.present:
+        from proof_present import run_presentation
+        raise SystemExit(run_presentation(args, EventReader))
     reader = EventReader(args.journal)
     print('OS DEMO PROOF | real Terminal | controller events + Linux /proc', flush=True)
     print('Journal: {}\nWaiting for Dashboard. Ctrl+C stops ONLY this viewer. No screen clearing.'.format(args.journal), flush=True)

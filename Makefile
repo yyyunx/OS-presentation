@@ -12,7 +12,7 @@ PHASE2 = bin/socket_server$(EXE) bin/blocking_server$(EXE) \
          bin/resource_protected_demo$(EXE)
 NETWORK_HEADERS = socket-server/net_utils.h socket-server/blocking_ticket_server.h
 
-.PHONY: all phase1 phase2 test demo-ui demo-proof test-demo-ui test-demo-proof clean
+.PHONY: all phase1 phase2 test demo-ui demo-proof demo-proof-present test-demo-ui test-demo-proof clean
 all: $(PHASE1) $(PHASE2)
 phase1: $(PHASE1)
 phase2: $(PHASE2)
@@ -57,6 +57,9 @@ demo-ui: all
 
 demo-proof:
 	python3 demo-ui/proof.py
+
+demo-proof-present:
+	python3 demo-ui/proof.py --present
 
 test-demo-proof: all
 	python3 tests/proof_integration.py --output .runtime/proof-test-results.json

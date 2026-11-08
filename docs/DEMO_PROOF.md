@@ -5,6 +5,45 @@ the experiments; the right native Ubuntu Terminal runs `make demo-proof`.
 The background Terminal A runs `make demo-ui`. Both must use the same clone,
 filesystem, and VM; a Windows viewer cannot measure a VMware guest's `/proc`.
 
+## Presentation Terminal mode
+
+Use `make demo-proof-present` for a projector. The original `make demo-proof`
+remains the detailed event viewer. Both consume exactly the same JSONL and real
+raw outputs; the projection view never starts a substitute experiment or invents
+data. No C++ or controller measurement logic changed.
+
+Projection uses a 58-column panel (at most 38 lines in regression checks), a
+numbered scene title, full Run ID, real PID, relative executable/actual arguments,
+measured fields, exit code and cleanup. Times are local HH:MM; detailed UTC ISO
+timestamps and full absolute paths remain in the original viewer and journal.
+GNOME Terminal's Monospace 13 pt is about 17 px at 96 DPI. Use a 1920×1080 desktop,
+browser on the left 60%, native Terminal on the right 40%.
+
+In a real TTY, changed fields repaint the current panel in place. Identical
+frames are suppressed. Only the next run replaces the scene; Completed/Error
+summaries remain, and browser Reset does not erase them. This is formatting of
+real events in a native terminal, not a terminal component in the webpage.
+RUNNING/LIVE is yellow, COMPLETED/PASS green, ERROR red, Historical gray.
+Use `--color never` for plain output or `--color always` for ANSI output.
+
+Each /proc column has its own observed sample time. A sample is LIVE only after
+a fresh event, within two seconds of its actual sample timestamp, while its
+server has not exited and the run remains Running. Replay, stale samples,
+server exit and completion all prevent LIVE claims. The event journal still
+records every sampling interval even when identical displayed values are not
+printed again. Child exit zero alone does not imply a Completed experiment.
+
+```bash
+make demo-proof-present
+python3 demo-ui/proof.py --present --once --color never
+python3 demo-ui/proof.py --present --once --all --color never
+```
+
+Portable tests cover width, no repeated frames, ANSI colors, stale/replayed
+samples, exit/nonzero/error, reset retention, dynamic results and malformed
+journals. `make test-demo-proof` also launches both real CLI followers against
+actual C++/proc runs and compares projection summaries to their original output.
+
 ## What is measured
 
 Every launched child, including load clients, gets a `process_start` event with
