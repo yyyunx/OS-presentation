@@ -4,6 +4,8 @@ CXXFLAGS = -std=c++11 -O2 -Wall -Wextra -Wpedantic -pthread
 # Linux defaults to extension-free executables.
 # Optional override EXE=.exe is only for supplementary MinGW verification.
 EXE ?=
+LAB_CXXFLAGS ?= -std=c++17 -O3 -Wall -Wextra -Wpedantic -pthread -fno-lto -fno-loop-interchange
+LAB_SOURCES = performance-lab/main.cpp performance-lab/memory.cpp performance-lab/cpu.cpp
 
 PHASE1 = bin/concurrency_demo$(EXE) bin/scheduling_demo$(EXE) \
          bin/race_demo$(EXE) bin/mutex_demo$(EXE)
@@ -12,10 +14,21 @@ PHASE2 = bin/socket_server$(EXE) bin/blocking_server$(EXE) \
          bin/resource_protected_demo$(EXE)
 NETWORK_HEADERS = socket-server/net_utils.h socket-server/blocking_ticket_server.h
 
-.PHONY: all phase1 phase2 test demo-ui demo-proof demo-proof-present test-demo-ui test-demo-proof clean
+.PHONY: all phase1 phase2 test demo-ui demo-proof demo-proof-present test-demo-ui test-demo-proof clean lab test-lab benchmark
 all: $(PHASE1) $(PHASE2)
 phase1: $(PHASE1)
 phase2: $(PHASE2)
+
+lab: bin/systems_lab
+
+bin/systems_lab: $(LAB_SOURCES) performance-lab/lab.h Makefile | bin
+	$(CXX) $(LAB_CXXFLAGS) '-DLAB_BUILD_FLAGS="$(LAB_CXXFLAGS)"' $(LAB_SOURCES) -o $@
+
+test-lab: lab
+	python3 -m unittest discover -s performance-lab/tests -v
+
+benchmark: lab
+	python3 performance-lab/bench.py
 
 bin:
 	mkdir -p bin

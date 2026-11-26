@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Computer Systems Performance Lab</title>
+  <link rel="stylesheet" href="/performance.css">
+  <script src="/performance.js" defer></script>
+</head>
+<body>
+<main>
+  <a href="/">← Concert Ticket Rush Dashboard</a>
+  <h1>Computer Systems Performance Lab</h1>
+  <p id="provenance" role="status">讀取已完成的量測…</p>
+  <section id="results" hidden>
+    <label for="experiment">實驗</label>
+    <select id="experiment"></select>
+    <h2 id="metric"></h2>
+    <p id="description"></p>
+    <div id="chart"></div>
+    <div class="scroll">
+      <table>
+        <caption>各指標為跨 trial 的統計</caption>
+        <thead><tr><th scope="col">版本</th><th scope="col">中位數</th><th scope="col">P95</th>
+          <th scope="col">樣本標準差</th><th scope="col">CPU 使用率</th>
+          <th scope="col">程序 Peak RSS</th><th scope="col">自願 / 非自願切換</th></tr></thead>
+        <tbody id="statistics"></tbody>
+      </table>
+    </div>
+    <p>100% CPU 約等於一顆邏輯 CPU 滿載。切換次數與 CPU 使用率取自計時區間，
+      Peak RSS 涵蓋整個 C++ 子程序。P95 為各批次量測的第 95 百分位。</p>
+    <details>
+      <summary>Linux perf 計數器</summary>
+      <p>每組事件另外執行一次完整程序，含資料初始化。硬體事件採 user mode。</p>
+      <div id="counters"></div>
+    </details>
+    <details>
+      <summary>硬體與執行環境</summary>
+      <dl id="environment"></dl>
+    </details>
+  </section>
+</main>
+</body>
+</html>

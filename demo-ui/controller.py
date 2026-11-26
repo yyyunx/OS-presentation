@@ -24,6 +24,9 @@ BINARIES = {'race_demo', 'mutex_demo', 'resource_uncontrolled_demo',
             'resource_protected_demo', 'blocking_server', 'epoll_server'}
 SCENES = {'safety', 'connections100', 'connections500', 'traffic'}
 LOG_LIMIT = 24000
+PERFORMANCE_REPORTS = (ROOT / '.runtime/performance-lab/latest.json',
+                       ROOT / 'docs/benchmarks/vmware-ubuntu/results.json')
+PERFORMANCE_LIMIT = 8 * 1024 * 1024
 
 
 class ExperimentError(Exception):
@@ -427,8 +430,24 @@ class Handler(BaseHTTPRequestHandler):
         if self.path == '/api/logs':
             return self.reply(200, self.server.dashboard.full_logs().encode('utf-8'),
                               'text/plain; charset=utf-8')
+        if self.path == '/api/performance':
+            for path in PERFORMANCE_REPORTS:
+                try:
+                    with path.open('rb') as report:
+                        data = report.read(PERFORMANCE_LIMIT + 1)
+                except FileNotFoundError:
+                    continue
+                except OSError:
+                    return self.reply(500, {'error': 'Cannot read performance report'})
+                if len(data) > PERFORMANCE_LIMIT:
+                    return self.reply(500, {'error': 'Performance report exceeds size limit'})
+                return self.reply(200, data)
+            return self.reply(404, {'error': 'No benchmark report yet'})
         files = {'/': ('index.html', 'text/html; charset=utf-8'),
                  '/app.js': ('app.js', 'text/javascript; charset=utf-8'),
+                 '/performance': ('performance.html', 'text/html; charset=utf-8'),
+                 '/performance.js': ('performance.js', 'text/javascript; charset=utf-8'),
+                 '/performance.css': ('performance.css', 'text/css; charset=utf-8'),
                  '/style.css': ('style.css', 'text/css; charset=utf-8')}
         if self.path not in files:
             return self.reply(404, {'error': 'Not found'})

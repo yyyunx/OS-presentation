@@ -41,3 +41,21 @@ jobs:
             .runtime/proof-test-results.json
           include-hidden-files: true
           if-no-files-found: ignore
+  systems-lab:
+    name: Systems lab correctness and benchmark smoke
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check kernel results, export, and dashboard endpoint
+        run: make test-lab
+      - name: Exercise all benchmark cases on a shared runner
+        run: |
+          python3 performance-lab/bench.py --profile quick --warmups 1 --trials 3 \
+            --environment-label ci --perf --output .runtime/ci-performance
+      - uses: actions/upload-artifact@v4
+        with:
+          name: systems-lab-ci-smoke
+          path: .runtime/ci-performance/
+          include-hidden-files: true
+          if-no-files-found: error
