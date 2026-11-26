@@ -1,6 +1,35 @@
-# From Click to Checkout: An Operating System Perspective on Online Ticketing
+# Computer Systems Performance Lab
 
-專案名稱：`ticket-rush-os-demo`
+從 Operating Systems 課程的 Concert Ticket Rush 延伸到 CPU、Memory 與 Concurrency。
+原課程用售票情境展示程序、I/O 和資源限制。效能實驗進一步比較資料排列、cache coherence、
+硬體向量指令與 Linux 排程，並附上可重現的量測和繁體中文解讀。
+
+| 主題 | 實驗 |
+|---|---|
+| 記憶體階層 | Cache locality、matrix traversal、memory alignment、memory bandwidth |
+| CPU 微架構 | SIMD vectorization、branch prediction |
+| 同步與 OS | False sharing、mutex vs atomic、CPU affinity、context switch |
+
+在 Linux 安裝 GCC g++、GNU Make 與 Python 3.10+，從專案根目錄執行：
+
+```bash
+make test-lab
+python3 performance-lab/bench.py --profile quick --warmups 1 --trials 3
+make demo-ui
+```
+
+開啟 **http://127.0.0.1:8765/performance** 查看結果。要執行完整實驗並嘗試 Linux perf，
+使用 `python3 performance-lab/bench.py --perf`。遇到 PMU 或權限限制時，計數器會標記
+`unavailable`。
+
+- [十項實驗原理、實作、重現與面試問題](docs/PERFORMANCE_LAB.md)
+- [實測環境、原始 JSON／CSV、圖表與解讀](docs/benchmarks/vmware-ubuntu/README.md)
+- [原課程基線與功能審查](docs/OS_COURSE_AUDIT.md)
+- [C++ 記憶體核心](performance-lab/memory.cpp) · [C++ 同步與排程](performance-lab/cpu.cpp) · [Python 量測框架](performance-lab/bench.py)
+
+## 原課程 · From Click to Checkout: An Operating System Perspective on Online Ticketing
+
+課程 Demo 的既有本機目錄名稱為 `ticket-rush-os-demo`。
 
 ## Concert Ticket Rush Dashboard
 
